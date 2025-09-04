@@ -434,6 +434,10 @@ with col2:
     <div style="background: white; border-radius: 20px; border: 1px solid #D6E7FB; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 16px; height: 100%;">
         <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">L2QR COUNT</div>
         <div style="font-size: 48px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["l2qr_count"]:,}</div>
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #E8F3FF;">
+            <div style="font-size: 10px; letter-spacing: 0.03em; text-transform: uppercase; color: #1B5297; opacity: 0.7; margin-bottom: 4px;">LEAD → L2QR</div>
+            <div style="font-size: 24px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["lead_to_l2qr_pct"]:.1f}%</div>
+        </div>
     </div>
     """
     st.markdown(card_html, unsafe_allow_html=True)
@@ -504,33 +508,10 @@ with col4:
 # Secondary KPIs Band
 st.markdown("### Secondary Metrics")
 
-col1, col2, col3 = st.columns(3)
+# Now only showing 2 columns since Lead->L2QR moved to primary
+col1, col2 = st.columns(2)
 
 with col1:
-    card_html = f"""
-    <div style="background: white; border-radius: 20px; border: 1px solid #E6EEF9; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 16px; height: 100%;">
-        <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">LEAD → L2QR</div>
-        <div style="font-size: 36px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["lead_to_l2qr_pct"]:.1f}%</div>
-    </div>
-    """
-    st.markdown(card_html, unsafe_allow_html=True)
-    
-    if st.session_state.show_sparklines:
-        sparkline_data = generate_sparkline_data(metrics['lead_to_l2qr_pct'])
-        st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
-    
-    if st.session_state.show_deltas:
-        deltas = generate_delta(metrics['lead_to_l2qr_pct'], 'up')
-        delta_html = f"""
-        <div style="margin-top: 8px;">
-            <span class="chip up">DoD ▲ +{deltas['dod']:.2f}%</span>
-            <span class="chip up">WoW ▲ +{deltas['wow']:.2f}%</span>
-            <span class="chip up">MoM ▲ +{deltas['mom']:.2f}%</span>
-        </div>
-        """
-        st.markdown(delta_html, unsafe_allow_html=True)
-
-with col2:
     card_html = f"""
     <div style="background: white; border-radius: 20px; border: 1px solid #E6EEF9; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 16px; height: 100%;">
         <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">L2QR → CONVERT</div>
@@ -554,7 +535,7 @@ with col2:
         """
         st.markdown(delta_html, unsafe_allow_html=True)
 
-with col3:
+with col2:
     card_html = f"""
     <div style="background: white; border-radius: 20px; border: 1px solid #E6EEF9; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 16px; height: 100%;">
         <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">MEDIAN SPEED TO LEAD</div>
