@@ -53,6 +53,11 @@ st.markdown("""
         padding: 0rem;
         background: none;
     }
+
+    /* Remove extra space above main container */
+    .block-container {
+        padding-top: 0rem !important;
+    }
     
     /* Reduce gap between elements */
     .stApp > div > div {
