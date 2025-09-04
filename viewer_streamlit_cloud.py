@@ -464,8 +464,16 @@ with col2:
 with col3:
     card_html = f"""
     <div style="background: white; border-radius: 20px; border: 1px solid #D6E7FB; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 16px; height: 100%;">
-        <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">CONVERTED COUNT</div>
-        <div style="font-size: 48px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["converted_count"]:,}</div>
+        <div style="display: flex; justify-content: space-between; gap: 16px;">
+            <div style="flex: 1;">
+                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">CONVERTED COUNT</div>
+                <div style="font-size: 48px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["converted_count"]:,}</div>
+            </div>
+            <div style="flex: 1; text-align: right;">
+                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">L2QR → CONVERT</div>
+                <div style="font-size: 32px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["l2qr_to_convert_pct"]:.2f}%</div>
+            </div>
+        </div>
     </div>
     """
     st.markdown(card_html, unsafe_allow_html=True)
@@ -512,36 +520,12 @@ with col4:
 # Secondary KPIs Band
 st.markdown("### Secondary Metrics")
 
-# Now only showing 2 columns since Lead->L2QR moved to primary
-col1, col2 = st.columns(2)
+# Now only 1 card since both conversion metrics moved to primary
+col1 = st.columns(1)[0]
 
 with col1:
     card_html = f"""
-    <div style="background: white; border-radius: 20px; border: 1px solid #E6EEF9; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 16px; height: 100%;">
-        <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">L2QR → CONVERT</div>
-        <div style="font-size: 36px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["l2qr_to_convert_pct"]:.2f}%</div>
-    </div>
-    """
-    st.markdown(card_html, unsafe_allow_html=True)
-    
-    if st.session_state.show_sparklines:
-        sparkline_data = generate_sparkline_data(metrics['l2qr_to_convert_pct'])
-        st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
-    
-    if st.session_state.show_deltas:
-        deltas = generate_delta(metrics['l2qr_to_convert_pct'], 'up')
-        delta_html = f"""
-        <div style="margin-top: 8px;">
-            <span class="chip up">DoD ▲ +{deltas['dod']:.2f}%</span>
-            <span class="chip up">WoW ▲ +{deltas['wow']:.2f}%</span>
-            <span class="chip up">MoM ▲ +{deltas['mom']:.2f}%</span>
-        </div>
-        """
-        st.markdown(delta_html, unsafe_allow_html=True)
-
-with col2:
-    card_html = f"""
-    <div style="background: white; border-radius: 20px; border: 1px solid #E6EEF9; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 16px; height: 100%;">
+    <div style="background: white; border-radius: 20px; border: 1px solid #E6EEF9; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 16px; height: 100%; max-width: 400px;">
         <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">MEDIAN SPEED TO LEAD</div>
         <div style="font-size: 36px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["median_speed_to_lead"]}</div>
     </div>
@@ -551,12 +535,16 @@ with col2:
     if st.session_state.show_sparklines:
         # For time-based metrics, show as minutes
         sparkline_data = generate_sparkline_data(1, num_points=8)  # Using 1 minute as base
-        st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
+        # Create a narrower chart container
+        with st.container():
+            col_chart, col_empty = st.columns([1, 2])
+            with col_chart:
+                st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
     
     if st.session_state.show_deltas:
         deltas = generate_delta(1, 'neutral')
         delta_html = f"""
-        <div style="margin-top: 8px;">
+        <div style="margin-top: 8px; max-width: 400px;">
             <span class="chip neutral">DoD ■ {deltas['dod']:.1f}%</span>
             <span class="chip {"down" if deltas['wow'] < 0 else "up"}">WoW {"▼" if deltas['wow'] < 0 else "▲"} {abs(deltas['wow']):.1f}%</span>
             <span class="chip {"down" if deltas['mom'] < 0 else "up"}">MoM {"▼" if deltas['mom'] < 0 else "▲"} {abs(deltas['mom']):.1f}%</span>
