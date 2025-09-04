@@ -326,11 +326,11 @@ def generate_delta(current, trend='up'):
     }
 
 # Custom Header
-st.markdown("""
-<div class="custom-header">
-    <div class="header-title">⚡ SurStitch for Salesforce</div>
-</div>
-""", unsafe_allow_html=True)
+## st.markdown("""
+## <div class="custom-header">
+##    <div class="header-title">⚡ SurStitch for Salesforce</div>
+## </div>
+## """, unsafe_allow_html=True)
 
 # File handling section
 col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
