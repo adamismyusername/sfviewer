@@ -19,7 +19,7 @@ st.set_page_config(
     page_title="SurStitch for Salesforce",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # Custom CSS that matches the HTML template
@@ -44,7 +44,7 @@ st.markdown("""
     
     /* Remove extra padding at the top of the page */
     .block-container {
-        padding-top: 1rem !important;
+        padding-top: 0.5rem !important;
         max-width: 100%;
     }
     
@@ -58,10 +58,10 @@ st.markdown("""
     /* KPI Cards */
     .kpi-card {
         background: white;
-        border-radius: 20px;
+        border-radius: 16px;
         border: 1px solid #D6E7FB;
         box-shadow: 0 1px 2px rgba(0,0,0,.06);
-        padding: 16px;
+        padding: 12px;
         height: 100%;
     }
 
@@ -79,14 +79,14 @@ st.markdown("""
     }
 
     .kpi-value {
-        font-size: 48px;
+        font-size: 42px;
         font-weight: 900;
         color: #0176D3;
         line-height: 1;
     }
 
     .kpi-value.secondary {
-        font-size: 36px;
+        font-size: 32px;
         color: #1B5297;
         font-weight: 800;
     }
@@ -321,88 +321,165 @@ def generate_delta(current, trend='up'):
         'mom': mom
     }
 
-# File handling section - now at the top without extra header
-st.markdown("### SurStitch for Salesforce")
-col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
-
-with col1:
-    # File selector for local files
+# SIDEBAR CONFIGURATION
+with st.sidebar:
+    st.markdown("### ⚙️ Configuration")
+    
+    # File Management Section
+    st.markdown("#### 📁 Data Source")
+    
+    # Load data early so we can check if we have data
     output_files = find_output_files()
+    if output_files:
+        selected_path = output_files[0]  # Default to most recent file
+    else:
+        selected_path = None
+    
+    # Try to load data from uploaded file or local file
+    df = None  # Initialize df
+    if 'uploaded_file' in st.session_state and st.session_state.uploaded_file:
+        df = load_data(uploaded_file=st.session_state.uploaded_file)
+    elif selected_path:
+        df = load_data(file_path=selected_path)
+    
+    # File selector for local files
     if output_files:
         file_options = {f.name: f for f in output_files}
         selected_file = st.selectbox(
-            "Select Output File",
+            "Select Local File",
             options=list(file_options.keys()),
             index=0 if file_options else None
         )
         selected_path = file_options.get(selected_file)
-    else:
-        # Only show warning if no uploaded file either
-        if not st.session_state.uploaded_file:
-            st.info("No local output files found. Please upload a CSV file.")
-        selected_path = None
-
-with col2:
-    # File uploader for Streamlit Cloud
+        # Load the selected file if it's different from what's already loaded
+        if selected_path and (df is None or not st.session_state.uploaded_file):
+            df = load_data(file_path=selected_path)
+    
+    # File uploader
     uploaded_file = st.file_uploader(
-        "Upload CSV",
+        "Or Upload CSV",
         type=['csv'],
-        label_visibility="collapsed",
         key="csv_uploader"
     )
     if uploaded_file:
         st.session_state.uploaded_file = uploaded_file
+        # Load the uploaded file immediately
+        df = load_data(uploaded_file=uploaded_file)
+    
+    st.divider()
+    
+    # KPI Options Section
+    st.markdown("#### 📊 Display Options")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button(
+            "📈 Sparklines" + (" ✓" if st.session_state.show_sparklines else ""),
+            key="toggle_sparklines",
+            type="primary" if st.session_state.show_sparklines else "secondary",
+            use_container_width=True
+        ):
+            st.session_state.show_sparklines = not st.session_state.show_sparklines
+    
+    with col2:
+        if st.button(
+            "% Deltas" + (" ✓" if st.session_state.show_deltas else ""),
+            key="toggle_deltas",
+            type="primary" if st.session_state.show_deltas else "secondary",
+            use_container_width=True
+        ):
+            st.session_state.show_deltas = not st.session_state.show_deltas
+    
+    st.divider()
+    
+    # Column Configuration Section
+    if df is not None and not df.empty:
+        st.markdown("#### 📊 Table Columns")
+        
+        # Initialize selected columns if not set
+        if st.session_state.selected_columns is None:
+            # Default columns to show
+            default_cols = [
+                'Lead_FirstName', 'Lead_LastName', 'Lead_Name', 'Lead_Status', 
+                'Lead_Source', 'Lead_Owner_Name', 'Lead_CreatedDate', 
+                'Activity_Count', 'Speed_to_Lead', 'Has_L2QR', 'Is_Converted_Bool'
+            ]
+            # Only include defaults that exist in the dataframe
+            st.session_state.selected_columns = [col for col in default_cols if col in df.columns]
+            
+            # If no default columns found, take first 10 columns
+            if not st.session_state.selected_columns:
+                st.session_state.selected_columns = list(df.columns[:10])
+        
+        # Multi-select for columns
+        selected_columns = st.multiselect(
+            "Select columns to display",
+            options=list(df.columns),
+            default=st.session_state.selected_columns,
+            key="column_selector"
+        )
+        st.session_state.selected_columns = selected_columns
+        
+        # Quick actions
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Select All", type="secondary", use_container_width=True):
+                st.session_state.selected_columns = list(df.columns)
+                st.rerun()
+        with col2:
+            if st.button("Clear All", type="secondary", use_container_width=True):
+                st.session_state.selected_columns = []
+                st.rerun()
+        
+        # Column renaming in expander
+        with st.expander("Rename Columns", expanded=False):
+            if selected_columns:
+                st.markdown("**Custom column labels:**")
+                
+                # Create input fields for each selected column
+                for col in selected_columns:
+                    # Get existing label or use original column name
+                    current_label = st.session_state.column_labels.get(col, col)
+                    new_label = st.text_input(
+                        col,
+                        value=current_label,
+                        key=f"rename_{col}"
+                    )
+                    st.session_state.column_labels[col] = new_label
+                
+                if st.button("Reset Labels", type="secondary", use_container_width=True):
+                    st.session_state.column_labels = {}
+                    st.rerun()
 
+# MAIN AREA
+st.markdown("### SurStitch for Salesforce")
+
+# Show alert only if no data is loaded from any source
+if df is None or (isinstance(df, pd.DataFrame) and df.empty):
+    if not output_files and not st.session_state.uploaded_file:
+        st.info("No data loaded. Please upload a CSV file in the sidebar.")
+
+# Refresh button in main area (smaller, top-right position)
+col1, col2, col3 = st.columns([8, 1, 1])
 with col3:
-    if st.button("🔄 Refresh", use_container_width=True):
+    if st.button("🔄", help="Refresh data"):
         st.rerun()
 
-with col4:
-    # Run Process button removed for cloud version
-    # This button requires local file system access which isn't available on Streamlit Cloud
-    pass
-
-# Toggle buttons for sparklines and deltas
-st.markdown("### KPI Options")
-col1, col2, col3 = st.columns([1, 1, 6])
-
-with col1:
-    if st.button(
-        "📈 Sparklines" + (" ✓" if st.session_state.show_sparklines else ""),
-        key="toggle_sparklines",
-        type="primary" if st.session_state.show_sparklines else "secondary"
-    ):
-        st.session_state.show_sparklines = not st.session_state.show_sparklines
-
-with col2:
-    if st.button(
-        "% Deltas" + (" ✓" if st.session_state.show_deltas else ""),
-        key="toggle_deltas",
-        type="primary" if st.session_state.show_deltas else "secondary"
-    ):
-        st.session_state.show_deltas = not st.session_state.show_deltas
-
-# Load data
-if st.session_state.uploaded_file:
-    df = load_data(uploaded_file=st.session_state.uploaded_file)
-else:
-    df = load_data(file_path=selected_path)
+# Data is already loaded above, no need to reload unless explicitly refreshed
 
 # Calculate metrics
 metrics = calculate_metrics(df)
 
-# Main KPIs Band
-st.markdown("### Lead Metrics")
-
-# Now only 3 columns since Lead->Convert moved to Converted Count card
+# Main KPIs - More compact layout
+st.markdown("#### Lead Metrics")
 col1, col2, col3 = st.columns(3)
 
 with col1:
     # Put all HTML in one block to keep it contained
     card_html = f"""
-    <div style="background: white; border-radius: 20px; border: 1px solid #D6E7FB; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 16px; height: 100%;">
-        <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">LEAD COUNT</div>
-        <div style="font-size: 48px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["lead_count"]:,}</div>
+    <div style="background: white; border-radius: 16px; border: 1px solid #D6E7FB; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 12px; height: 100%;">
+        <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">LEAD COUNT</div>
+        <div style="font-size: 42px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["lead_count"]:,}</div>
     </div>
     """
     st.markdown(card_html, unsafe_allow_html=True)
@@ -425,15 +502,15 @@ with col1:
 
 with col2:
     card_html = f"""
-    <div style="background: white; border-radius: 20px; border: 1px solid #D6E7FB; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 16px; height: 100%;">
-        <div style="display: flex; justify-content: space-between; gap: 16px;">
+    <div style="background: white; border-radius: 16px; border: 1px solid #D6E7FB; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 12px; height: 100%;">
+        <div style="display: flex; justify-content: space-between; gap: 12px;">
             <div style="flex: 1;">
-                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">L2QR COUNT</div>
-                <div style="font-size: 48px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["l2qr_count"]:,}</div>
+                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">L2QR COUNT</div>
+                <div style="font-size: 42px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["l2qr_count"]:,}</div>
             </div>
             <div style="flex: 1; text-align: right;">
-                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">LEAD → L2QR</div>
-                <div style="font-size: 32px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["lead_to_l2qr_pct"]:.1f}%</div>
+                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">LEAD → L2QR</div>
+                <div style="font-size: 28px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["lead_to_l2qr_pct"]:.1f}%</div>
             </div>
         </div>
     </div>
@@ -457,19 +534,19 @@ with col2:
 
 with col3:
     card_html = f"""
-    <div style="background: white; border-radius: 20px; border: 1px solid #D6E7FB; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 16px; height: 100%;">
-        <div style="display: flex; justify-content: space-between; gap: 12px;">
+    <div style="background: white; border-radius: 16px; border: 1px solid #D6E7FB; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 12px; height: 100%;">
+        <div style="display: flex; justify-content: space-between; gap: 10px;">
             <div style="flex: 1;">
-                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">ACCOUNTS</div>
-                <div style="font-size: 48px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["converted_count"]:,}</div>
+                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">ACCOUNTS</div>
+                <div style="font-size: 42px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["converted_count"]:,}</div>
             </div>
             <div style="flex: 1; text-align: center;">
-                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">LEAD → ACCOUNT</div>
-                <div style="font-size: 32px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["lead_to_convert_pct"]:.2f}%</div>
+                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">LEAD → ACCOUNT</div>
+                <div style="font-size: 28px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["lead_to_convert_pct"]:.2f}%</div>
             </div>
             <div style="flex: 1; text-align: right;">
-                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">L2QR → ACCOUNT</div>
-                <div style="font-size: 32px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["l2qr_to_convert_pct"]:.2f}%</div>
+                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">L2QR → ACCOUNT</div>
+                <div style="font-size: 28px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["l2qr_to_convert_pct"]:.2f}%</div>
             </div>
         </div>
     </div>
@@ -492,17 +569,15 @@ with col3:
         st.markdown(delta_html, unsafe_allow_html=True)
 
 
-# Secondary KPIs Band
-st.markdown("### Calling Metrics")
-
-# Now only 1 card since both conversion metrics moved to primary
+# Secondary KPIs - More compact
+st.markdown("#### Calling Metrics")
 col1 = st.columns(1)[0]
 
 with col1:
     card_html = f"""
-    <div style="background: white; border-radius: 20px; border: 1px solid #E6EEF9; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 16px; height: 100%; max-width: 400px;">
-        <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">MEDIAN SPEED TO LEAD</div>
-        <div style="font-size: 36px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["median_speed_to_lead"]}</div>
+    <div style="background: white; border-radius: 16px; border: 1px solid #E6EEF9; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 12px; height: 100%; max-width: 350px;">
+        <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">MEDIAN SPEED TO LEAD</div>
+        <div style="font-size: 32px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["median_speed_to_lead"]}</div>
     </div>
     """
     st.markdown(card_html, unsafe_allow_html=True)
@@ -532,78 +607,6 @@ st.markdown('<div class="table-card">', unsafe_allow_html=True)
 st.markdown("### Person Master Data")
 
 if df is not None and not df.empty:
-    # Column Configuration Section
-    with st.expander("⚙️ Configure Table Columns", expanded=False):
-        st.markdown("**Select columns to display:**")
-        
-        # Initialize selected columns if not set
-        if st.session_state.selected_columns is None:
-            # Default columns to show
-            default_cols = [
-                'Lead_FirstName', 'Lead_LastName', 'Lead_Name', 'Lead_Status', 
-                'Lead_Source', 'Lead_Owner_Name', 'Lead_CreatedDate', 
-                'Activity_Count', 'Speed_to_Lead', 'Has_L2QR', 'Is_Converted_Bool'
-            ]
-            # Only include defaults that exist in the dataframe
-            st.session_state.selected_columns = [col for col in default_cols if col in df.columns]
-            
-            # If no default columns found, take first 10 columns
-            if not st.session_state.selected_columns:
-                st.session_state.selected_columns = list(df.columns[:10])
-        
-        # Multi-select for columns
-        selected_columns = st.multiselect(
-            "Choose columns",
-            options=list(df.columns),
-            default=st.session_state.selected_columns,
-            key="column_selector"
-        )
-        st.session_state.selected_columns = selected_columns
-        
-        # Column renaming section
-        if selected_columns:
-            st.markdown("**Rename column headers (optional):**")
-            
-            # Create two columns for the renaming interface
-            rename_col1, rename_col2 = st.columns(2)
-            
-            with rename_col1:
-                st.markdown("*Original Name*")
-            with rename_col2:
-                st.markdown("*Display Name*")
-            
-            # Create input fields for each selected column
-            for col in selected_columns:
-                rename_col1, rename_col2 = st.columns(2)
-                
-                with rename_col1:
-                    st.text(col)
-                
-                with rename_col2:
-                    # Get existing label or use original column name
-                    current_label = st.session_state.column_labels.get(col, col)
-                    new_label = st.text_input(
-                        "Rename",
-                        value=current_label,
-                        key=f"rename_{col}",
-                        label_visibility="collapsed"
-                    )
-                    st.session_state.column_labels[col] = new_label
-            
-            # Quick actions
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                if st.button("Reset Names", type="secondary"):
-                    st.session_state.column_labels = {}
-                    st.rerun()
-            with col2:
-                if st.button("Select All Columns", type="secondary"):
-                    st.session_state.selected_columns = list(df.columns)
-                    st.rerun()
-            with col3:
-                if st.button("Clear Selection", type="secondary"):
-                    st.session_state.selected_columns = []
-                    st.rerun()
     # Filters
     col1, col2, col3, col4 = st.columns(4)
     
