@@ -19,7 +19,7 @@ st.set_page_config(
     page_title="SurStitch for Salesforce",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Custom CSS that matches the HTML template
@@ -452,18 +452,21 @@ with st.sidebar:
                     st.rerun()
 
 # MAIN AREA
-st.markdown("### SurStitch for Salesforce")
+# Header with title and refresh button
+col_title, col_refresh = st.columns([10, 1])
+with col_title:
+    st.markdown("### SurStitch for Salesforce")
+    # More prominent helper text about the sidebar
+    st.info("☰ **Click the > arrow in the top-left corner to open the sidebar for configuration options**")
+
+with col_refresh:
+    if st.button("🔄", help="Refresh data"):
+        st.rerun()
 
 # Show alert only if no data is loaded from any source
 if df is None or (isinstance(df, pd.DataFrame) and df.empty):
     if not output_files and not st.session_state.uploaded_file:
-        st.info("No data loaded. Please upload a CSV file in the sidebar.")
-
-# Refresh button in main area (smaller, top-right position)
-col1, col2, col3 = st.columns([8, 1, 1])
-with col3:
-    if st.button("🔄", help="Refresh data"):
-        st.rerun()
+        st.info("No data loaded. Please use the sidebar to upload a CSV file or select a local file.")
 
 # Data is already loaded above, no need to reload unless explicitly refreshed
 
@@ -603,7 +606,6 @@ with col1:
         st.markdown(delta_html, unsafe_allow_html=True)
 
 # Data Table Section
-st.markdown('<div class="table-card">', unsafe_allow_html=True)
 st.markdown("### Person Master Data")
 
 if df is not None and not df.empty:
@@ -723,5 +725,3 @@ if df is not None and not df.empty:
             )
 else:
     st.warning("No data loaded. Please upload a CSV file or ensure Output-Files directory contains person_master CSV files.")
-
-st.markdown('</div>', unsafe_allow_html=True)
