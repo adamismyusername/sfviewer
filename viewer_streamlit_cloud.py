@@ -42,11 +42,17 @@ st.markdown("""
     footer {visibility: hidden;}
     /* header {visibility: hidden;} */
     
-    /* Remove extra padding at the top of the page
-    .block-container {
-        padding-top: 0.5rem !important;
-        max-width: 100%;
-    } */
+    /* Reduce empty space from header */
+    [data-testid="stHeader"] {
+        height: 0rem;
+        padding: 0rem;
+        background: none;
+    }
+    [data-testid="stToolbar"] {
+        height: 0rem;
+        padding: 0rem;
+        background: none;
+    }
     
     /* Reduce gap between elements */
     .stApp > div > div {
