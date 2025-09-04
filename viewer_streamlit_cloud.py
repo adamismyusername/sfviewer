@@ -58,6 +58,12 @@ st.markdown("""
     .block-container {
         padding-top: 0rem !important;
     }
+
+    /* Hide GitHub, Star, and Share buttons in the top-right header */
+    [data-testid="stToolbar"] a,
+    [data-testid="stToolbar"] button {
+        visibility: hidden;
+    }
     
     /* Reduce gap between elements */
     .stApp > div > div {
