@@ -46,7 +46,8 @@ st.markdown("""
     .custom-header {
         background: #0176D3;
         color: white;
-        padding: 1rem;
+        /* padding: 1rem; */
+        padding: 0px;
         margin: -3rem -3rem 2rem -3rem;
         display: flex;
         justify-content: space-between;
