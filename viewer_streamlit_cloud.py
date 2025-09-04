@@ -337,7 +337,9 @@ with col1:
         )
         selected_path = file_options.get(selected_file)
     else:
-        st.info("No local output files found. Please upload a CSV file.")
+        # Only show warning if no uploaded file either
+        if not st.session_state.uploaded_file:
+            st.info("No local output files found. Please upload a CSV file.")
         selected_path = None
 
 with col2:
@@ -356,8 +358,9 @@ with col3:
         st.rerun()
 
 with col4:
-    if st.button("▶️ Run Process", type="primary", use_container_width=True):
-        st.info("Process runner not implemented yet")
+    # Run Process button removed for cloud version
+    # This button requires local file system access which isn't available on Streamlit Cloud
+    pass
 
 # Toggle buttons for sparklines and deltas
 st.markdown("### KPI Options")
@@ -365,17 +368,17 @@ col1, col2, col3 = st.columns([1, 1, 6])
 
 with col1:
     if st.button(
-        "📈 Sparklines" if not st.session_state.show_sparklines else "📈 Sparklines ✓",
+        "📈 Sparklines" + (" ✓" if st.session_state.show_sparklines else ""),
         key="toggle_sparklines",
-        type="secondary" if not st.session_state.show_sparklines else "primary"
+        type="primary" if st.session_state.show_sparklines else "secondary"
     ):
         st.session_state.show_sparklines = not st.session_state.show_sparklines
 
 with col2:
     if st.button(
-        "% Deltas" if not st.session_state.show_deltas else "% Deltas ✓",
+        "% Deltas" + (" ✓" if st.session_state.show_deltas else ""),
         key="toggle_deltas",
-        type="secondary" if not st.session_state.show_deltas else "primary"
+        type="primary" if st.session_state.show_deltas else "secondary"
     ):
         st.session_state.show_deltas = not st.session_state.show_deltas
 
