@@ -432,11 +432,15 @@ with col1:
 with col2:
     card_html = f"""
     <div style="background: white; border-radius: 20px; border: 1px solid #D6E7FB; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 16px; height: 100%;">
-        <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">L2QR COUNT</div>
-        <div style="font-size: 48px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["l2qr_count"]:,}</div>
-        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #E8F3FF;">
-            <div style="font-size: 10px; letter-spacing: 0.03em; text-transform: uppercase; color: #1B5297; opacity: 0.7; margin-bottom: 4px;">LEAD → L2QR</div>
-            <div style="font-size: 24px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["lead_to_l2qr_pct"]:.1f}%</div>
+        <div style="display: flex; justify-content: space-between; gap: 16px;">
+            <div style="flex: 1;">
+                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">L2QR COUNT</div>
+                <div style="font-size: 48px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["l2qr_count"]:,}</div>
+            </div>
+            <div style="flex: 1; text-align: right;">
+                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 8px;">LEAD → L2QR</div>
+                <div style="font-size: 32px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["lead_to_l2qr_pct"]:.1f}%</div>
+            </div>
         </div>
     </div>
     """
