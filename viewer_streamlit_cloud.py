@@ -1,0 +1,686 @@
+"""
+SurStitch for Salesforce - Streamlit Cloud Viewer
+Based on ui_template.html design
+Created: Sept 4, 2025
+
+This viewer is designed to work both locally and on Streamlit Cloud
+"""
+
+import streamlit as st
+import pandas as pd
+import os
+from pathlib import Path
+from datetime import datetime, timedelta
+import random
+import json
+
+# Page config - MUST BE FIRST
+st.set_page_config(
+    page_title="SurStitch for Salesforce",
+    page_icon="⚡",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# Custom CSS that matches the HTML template
+st.markdown("""
+<style>
+    /* Salesforce Theme Variables */
+    :root {
+        --sf-blue: #0176D3;
+        --sf-indigo: #1B5297;
+        --band-1: #E8F3FF;
+        --band-1-ring: #BFD9F5;
+        --band-2: #F6FAFF;
+        --band-2-ring: #DFEAF8;
+        --card-bd-1: #D6E7FB;
+        --card-bd-2: #E6EEF9;
+    }
+
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
+    /* Custom Header */
+    .custom-header {
+        background: #0176D3;
+        color: white;
+        padding: 1rem;
+        margin: -3rem -3rem 2rem -3rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+
+    .header-title {
+        font-size: 20px;
+        font-weight: 800;
+    }
+
+    /* KPI Cards */
+    .kpi-card {
+        background: white;
+        border-radius: 20px;
+        border: 1px solid #D6E7FB;
+        box-shadow: 0 1px 2px rgba(0,0,0,.06);
+        padding: 16px;
+        height: 100%;
+    }
+
+    .kpi-card.secondary {
+        border-color: #E6EEF9;
+    }
+
+    .kpi-label {
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #1B5297;
+        opacity: 0.9;
+        margin-bottom: 8px;
+    }
+
+    .kpi-value {
+        font-size: 48px;
+        font-weight: 900;
+        color: #0176D3;
+        line-height: 1;
+    }
+
+    .kpi-value.secondary {
+        font-size: 36px;
+        color: #1B5297;
+        font-weight: 800;
+    }
+
+    /* KPI Bands */
+    .band-main {
+        background: #E8F3FF;
+        border: 1px solid #BFD9F5;
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .band-secondary {
+        background: #F6FAFF;
+        border: 1px solid #DFEAF8;
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    /* Delta Chips */
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 8px;
+        padding: 4px 8px;
+        font-weight: 700;
+        font-size: 10px;
+        margin-right: 8px;
+    }
+
+    .chip.up {
+        border: 1px solid #a7f3d0;
+        color: #047857;
+        background: #ecfdf5;
+    }
+
+    .chip.down {
+        border: 1px solid #fecaca;
+        color: #b91c1c;
+        background: #fef2f2;
+    }
+
+    .chip.neutral {
+        border: 1px solid #e5e7eb;
+        color: #374151;
+        background: #f3f4f6;
+    }
+
+    /* Filters */
+    .stSelectbox > div > div {
+        border-radius: 12px !important;
+        border-color: #e5e7eb !important;
+    }
+
+    /* Data Table Card */
+    .table-card {
+        background: white;
+        border-radius: 20px;
+        border: 1px solid #D6E7FB;
+        box-shadow: 0 4px 12px rgba(0,0,0,.08);
+        padding: 24px;
+    }
+
+    /* Streamlit specific adjustments */
+    .stButton > button {
+        border-radius: 12px;
+        padding: 8px 12px;
+        font-weight: 600;
+    }
+
+    /* Toggle buttons */
+    .toggle-button {
+        border-radius: 10px;
+        padding: 6px 10px;
+        font-size: 14px;
+    }
+
+    /* Hide default Streamlit padding on some elements */
+    .element-container {
+        margin: 0 !important;
+    }
+
+    div[data-testid="stHorizontalBlock"] > div {
+        padding: 0 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Initialize session state
+if 'show_sparklines' not in st.session_state:
+    st.session_state.show_sparklines = False
+if 'show_deltas' not in st.session_state:
+    st.session_state.show_deltas = False
+if 'uploaded_file' not in st.session_state:
+    st.session_state.uploaded_file = None
+
+def find_output_files():
+    """Find all person_master CSV files in Output-Files directory"""
+    # Try different paths for local development
+    possible_paths = [
+        Path("Output-Files"),  # If running from main SurStitch directory
+        Path("../../Output-Files"),  # If running from UI/STREAMLIT
+        Path("D:/08 - APPS & DEVELOPMENT/salesforce-data-anlayzer/SurStitch/Output-Files"),  # Absolute path
+    ]
+    
+    for base_path in possible_paths:
+        if base_path.exists():
+            csv_files = list(base_path.glob("person_master_*.csv"))
+            if csv_files:
+                return sorted(csv_files, reverse=True)
+    return []
+
+def load_data(file_path=None, uploaded_file=None):
+    """Load data from file path or uploaded file"""
+    try:
+        if uploaded_file is not None:
+            df = pd.read_csv(uploaded_file)
+        elif file_path:
+            df = pd.read_csv(file_path)
+        else:
+            return None
+            
+        # Ensure required columns exist
+        required_cols = ['Person_UUID', 'Lead_Status', 'Lead_Source']
+        for col in required_cols:
+            if col not in df.columns:
+                df[col] = 'Unknown'
+                
+        return df
+    except Exception as e:
+        st.error(f"Error loading data: {str(e)}")
+        return None
+
+def calculate_metrics(df):
+    """Calculate all KPI metrics from dataframe"""
+    if df is None or df.empty:
+        return {
+            'lead_count': 0,
+            'l2qr_count': 0,
+            'converted_count': 0,
+            'lead_to_convert_pct': 0,
+            'lead_to_l2qr_pct': 0,
+            'l2qr_to_convert_pct': 0,
+            'median_speed_to_lead': '00:00',
+            'activity_count_avg': 0
+        }
+    
+    metrics = {}
+    
+    # Main metrics
+    metrics['lead_count'] = len(df)
+    
+    # Check for L2QR column
+    if 'Has_L2QR' in df.columns:
+        metrics['l2qr_count'] = df['Has_L2QR'].astype(str).str.lower().isin(['true', 'yes', '1']).sum()
+    else:
+        metrics['l2qr_count'] = 0
+    
+    # Check for conversion column
+    if 'Is_Converted_Bool' in df.columns:
+        metrics['converted_count'] = df['Is_Converted_Bool'].astype(str).str.lower().isin(['true', 'yes', '1']).sum()
+    else:
+        metrics['converted_count'] = 0
+    
+    # Calculate percentages
+    if metrics['lead_count'] > 0:
+        metrics['lead_to_convert_pct'] = (metrics['converted_count'] / metrics['lead_count']) * 100
+        metrics['lead_to_l2qr_pct'] = (metrics['l2qr_count'] / metrics['lead_count']) * 100
+    else:
+        metrics['lead_to_convert_pct'] = 0
+        metrics['lead_to_l2qr_pct'] = 0
+    
+    if metrics['l2qr_count'] > 0:
+        metrics['l2qr_to_convert_pct'] = (metrics['converted_count'] / metrics['l2qr_count']) * 100
+    else:
+        metrics['l2qr_to_convert_pct'] = 0
+    
+    # Calculate median speed to lead
+    if 'Speed_to_Lead' in df.columns:
+        # Parse time format (HH:MM or similar)
+        try:
+            speed_values = df['Speed_to_Lead'].dropna()
+            if not speed_values.empty:
+                # Get median value
+                median_val = speed_values.iloc[len(speed_values)//2]
+                metrics['median_speed_to_lead'] = str(median_val)[:5]  # Keep HH:MM format
+            else:
+                metrics['median_speed_to_lead'] = '00:00'
+        except:
+            metrics['median_speed_to_lead'] = '00:00'
+    else:
+        metrics['median_speed_to_lead'] = '00:00'
+    
+    # Activity count
+    if 'Activity_Count' in df.columns:
+        metrics['activity_count_avg'] = df['Activity_Count'].mean()
+    else:
+        metrics['activity_count_avg'] = 0
+    
+    return metrics
+
+def generate_sparkline_data(base_value, num_points=8):
+    """Generate fake sparkline data for demo purposes"""
+    points = [base_value * random.uniform(0.8, 1.2) for _ in range(num_points)]
+    return points
+
+def generate_delta(current, trend='up'):
+    """Generate fake delta values for demo purposes"""
+    if trend == 'up':
+        dod = random.uniform(0.1, 2.0)
+        wow = random.uniform(1.0, 8.0)
+        mom = random.uniform(5.0, 20.0)
+    elif trend == 'down':
+        dod = -random.uniform(0.1, 2.0)
+        wow = -random.uniform(1.0, 8.0)
+        mom = -random.uniform(5.0, 20.0)
+    else:
+        dod = 0
+        wow = random.uniform(-2.0, 2.0)
+        mom = random.uniform(-5.0, 5.0)
+    
+    return {
+        'dod': dod,
+        'wow': wow,
+        'mom': mom
+    }
+
+# Custom Header
+st.markdown("""
+<div class="custom-header">
+    <div class="header-title">⚡ SurStitch for Salesforce</div>
+</div>
+""", unsafe_allow_html=True)
+
+# File handling section
+col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+
+with col1:
+    # File selector for local files
+    output_files = find_output_files()
+    if output_files:
+        file_options = {f.name: f for f in output_files}
+        selected_file = st.selectbox(
+            "Select Output File",
+            options=list(file_options.keys()),
+            index=0 if file_options else None
+        )
+        selected_path = file_options.get(selected_file)
+    else:
+        st.info("No local output files found. Please upload a CSV file.")
+        selected_path = None
+
+with col2:
+    # File uploader for Streamlit Cloud
+    uploaded_file = st.file_uploader(
+        "Upload CSV",
+        type=['csv'],
+        label_visibility="collapsed",
+        key="csv_uploader"
+    )
+    if uploaded_file:
+        st.session_state.uploaded_file = uploaded_file
+
+with col3:
+    if st.button("🔄 Refresh", use_container_width=True):
+        st.rerun()
+
+with col4:
+    if st.button("▶️ Run Process", type="primary", use_container_width=True):
+        st.info("Process runner not implemented yet")
+
+# Toggle buttons for sparklines and deltas
+st.markdown("### KPI Options")
+col1, col2, col3 = st.columns([1, 1, 6])
+
+with col1:
+    if st.button(
+        "📈 Sparklines" if not st.session_state.show_sparklines else "📈 Sparklines ✓",
+        key="toggle_sparklines",
+        type="secondary" if not st.session_state.show_sparklines else "primary"
+    ):
+        st.session_state.show_sparklines = not st.session_state.show_sparklines
+
+with col2:
+    if st.button(
+        "% Deltas" if not st.session_state.show_deltas else "% Deltas ✓",
+        key="toggle_deltas",
+        type="secondary" if not st.session_state.show_deltas else "primary"
+    ):
+        st.session_state.show_deltas = not st.session_state.show_deltas
+
+# Load data
+if st.session_state.uploaded_file:
+    df = load_data(uploaded_file=st.session_state.uploaded_file)
+else:
+    df = load_data(file_path=selected_path)
+
+# Calculate metrics
+metrics = calculate_metrics(df)
+
+# Main KPIs Band
+st.markdown('<div class="band-main">', unsafe_allow_html=True)
+st.markdown("### Primary Metrics")
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    with st.container():
+        st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">LEAD COUNT</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value">{metrics["lead_count"]:,}</div>', unsafe_allow_html=True)
+        
+        if st.session_state.show_sparklines:
+            # In a real app, you'd calculate actual historical data
+            sparkline_data = generate_sparkline_data(metrics['lead_count'])
+            st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
+        
+        if st.session_state.show_deltas:
+            deltas = generate_delta(metrics['lead_count'], 'up')
+            delta_html = f"""
+            <div style="margin-top: 8px;">
+                <span class="chip up">DoD ▲ +{deltas['dod']:.1f}%</span>
+                <span class="chip up">WoW ▲ +{deltas['wow']:.1f}%</span>
+                <span class="chip up">MoM ▲ +{deltas['mom']:.1f}%</span>
+            </div>
+            """
+            st.markdown(delta_html, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+with col2:
+    with st.container():
+        st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">L2QR COUNT</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value">{metrics["l2qr_count"]:,}</div>', unsafe_allow_html=True)
+        
+        if st.session_state.show_sparklines:
+            sparkline_data = generate_sparkline_data(metrics['l2qr_count'])
+            st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
+        
+        if st.session_state.show_deltas:
+            deltas = generate_delta(metrics['l2qr_count'], 'up')
+            delta_html = f"""
+            <div style="margin-top: 8px;">
+                <span class="chip up">DoD ▲ +{deltas['dod']:.1f}%</span>
+                <span class="chip up">WoW ▲ +{deltas['wow']:.1f}%</span>
+                <span class="chip up">MoM ▲ +{deltas['mom']:.1f}%</span>
+            </div>
+            """
+            st.markdown(delta_html, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+with col3:
+    with st.container():
+        st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">CONVERTED COUNT</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value">{metrics["converted_count"]:,}</div>', unsafe_allow_html=True)
+        
+        if st.session_state.show_sparklines:
+            sparkline_data = generate_sparkline_data(metrics['converted_count'])
+            st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
+        
+        if st.session_state.show_deltas:
+            deltas = generate_delta(metrics['converted_count'], 'up')
+            delta_html = f"""
+            <div style="margin-top: 8px;">
+                <span class="chip up">DoD ▲ +{deltas['dod']:.1f}%</span>
+                <span class="chip up">WoW ▲ +{deltas['wow']:.1f}%</span>
+                <span class="chip up">MoM ▲ +{deltas['mom']:.1f}%</span>
+            </div>
+            """
+            st.markdown(delta_html, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+with col4:
+    with st.container():
+        st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">LEAD → CONVERT</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value">{metrics["lead_to_convert_pct"]:.2f}%</div>', unsafe_allow_html=True)
+        
+        if st.session_state.show_sparklines:
+            sparkline_data = generate_sparkline_data(metrics['lead_to_convert_pct'])
+            st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
+        
+        if st.session_state.show_deltas:
+            deltas = generate_delta(metrics['lead_to_convert_pct'], 'up')
+            delta_html = f"""
+            <div style="margin-top: 8px;">
+                <span class="chip up">DoD ▲ +{deltas['dod']:.2f}%</span>
+                <span class="chip up">WoW ▲ +{deltas['wow']:.2f}%</span>
+                <span class="chip up">MoM ▲ +{deltas['mom']:.2f}%</span>
+            </div>
+            """
+            st.markdown(delta_html, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Secondary KPIs Band
+st.markdown('<div class="band-secondary">', unsafe_allow_html=True)
+st.markdown("### Secondary Metrics")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    with st.container():
+        st.markdown('<div class="kpi-card secondary">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">LEAD → L2QR</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value secondary">{metrics["lead_to_l2qr_pct"]:.1f}%</div>', unsafe_allow_html=True)
+        
+        if st.session_state.show_sparklines:
+            sparkline_data = generate_sparkline_data(metrics['lead_to_l2qr_pct'])
+            st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
+        
+        if st.session_state.show_deltas:
+            deltas = generate_delta(metrics['lead_to_l2qr_pct'], 'up')
+            delta_html = f"""
+            <div style="margin-top: 8px;">
+                <span class="chip up">DoD ▲ +{deltas['dod']:.2f}%</span>
+                <span class="chip up">WoW ▲ +{deltas['wow']:.2f}%</span>
+                <span class="chip up">MoM ▲ +{deltas['mom']:.2f}%</span>
+            </div>
+            """
+            st.markdown(delta_html, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+with col2:
+    with st.container():
+        st.markdown('<div class="kpi-card secondary">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">L2QR → CONVERT</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value secondary">{metrics["l2qr_to_convert_pct"]:.2f}%</div>', unsafe_allow_html=True)
+        
+        if st.session_state.show_sparklines:
+            sparkline_data = generate_sparkline_data(metrics['l2qr_to_convert_pct'])
+            st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
+        
+        if st.session_state.show_deltas:
+            deltas = generate_delta(metrics['l2qr_to_convert_pct'], 'up')
+            delta_html = f"""
+            <div style="margin-top: 8px;">
+                <span class="chip up">DoD ▲ +{deltas['dod']:.2f}%</span>
+                <span class="chip up">WoW ▲ +{deltas['wow']:.2f}%</span>
+                <span class="chip up">MoM ▲ +{deltas['mom']:.2f}%</span>
+            </div>
+            """
+            st.markdown(delta_html, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+with col3:
+    with st.container():
+        st.markdown('<div class="kpi-card secondary">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">MEDIAN SPEED TO LEAD</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value secondary">{metrics["median_speed_to_lead"]}</div>', unsafe_allow_html=True)
+        
+        if st.session_state.show_sparklines:
+            # For time-based metrics, show as minutes
+            sparkline_data = generate_sparkline_data(1, num_points=8)  # Using 1 minute as base
+            st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
+        
+        if st.session_state.show_deltas:
+            deltas = generate_delta(1, 'neutral')
+            delta_html = f"""
+            <div style="margin-top: 8px;">
+                <span class="chip neutral">DoD ■ {deltas['dod']:.1f}%</span>
+                <span class="chip {"down" if deltas['wow'] < 0 else "up"}">WoW {"▼" if deltas['wow'] < 0 else "▲"} {abs(deltas['wow']):.1f}%</span>
+                <span class="chip {"down" if deltas['mom'] < 0 else "up"}">MoM {"▼" if deltas['mom'] < 0 else "▲"} {abs(deltas['mom']):.1f}%</span>
+            </div>
+            """
+            st.markdown(delta_html, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Data Table Section
+st.markdown('<div class="table-card">', unsafe_allow_html=True)
+st.markdown("### Person Master Data")
+
+if df is not None and not df.empty:
+    # Filters
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        # Lead Status filter
+        if 'Lead_Status' in df.columns:
+            status_options = ['All'] + sorted(df['Lead_Status'].dropna().unique().tolist())
+            selected_status = st.selectbox("Lead Status", status_options)
+        else:
+            selected_status = 'All'
+    
+    with col2:
+        # Lead Source filter
+        if 'Lead_Source' in df.columns:
+            source_options = ['All'] + sorted(df['Lead_Source'].dropna().unique().tolist())
+            selected_source = st.selectbox("Lead Source", source_options)
+        else:
+            selected_source = 'All'
+    
+    with col3:
+        # Conversion Status filter
+        conversion_options = ['All', 'Converted', 'Not Converted']
+        selected_conversion = st.selectbox("Conversion Status", conversion_options)
+    
+    with col4:
+        # Search box
+        search_term = st.text_input("Search all fields...", placeholder="Enter search term")
+    
+    # Apply filters
+    filtered_df = df.copy()
+    
+    if selected_status != 'All' and 'Lead_Status' in df.columns:
+        filtered_df = filtered_df[filtered_df['Lead_Status'] == selected_status]
+    
+    if selected_source != 'All' and 'Lead_Source' in df.columns:
+        filtered_df = filtered_df[filtered_df['Lead_Source'] == selected_source]
+    
+    if selected_conversion != 'All' and 'Is_Converted_Bool' in df.columns:
+        if selected_conversion == 'Converted':
+            filtered_df = filtered_df[filtered_df['Is_Converted_Bool'].astype(str).str.lower().isin(['true', 'yes', '1'])]
+        else:
+            filtered_df = filtered_df[~filtered_df['Is_Converted_Bool'].astype(str).str.lower().isin(['true', 'yes', '1'])]
+    
+    if search_term:
+        # Search across all string columns
+        mask = filtered_df.astype(str).apply(lambda x: x.str.contains(search_term, case=False, na=False)).any(axis=1)
+        filtered_df = filtered_df[mask]
+    
+    # Stats bar
+    filtered_metrics = calculate_metrics(filtered_df)
+    st.markdown(f"""
+    <div style="display: flex; gap: 32px; padding: 16px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; margin: 16px 0;">
+        <div><b>Filtered Records:</b> {len(filtered_df):,} / {len(df):,}</div>
+        <div><b>Filtered Conversion Rate:</b> {filtered_metrics['lead_to_convert_pct']:.2f}%</div>
+        <div><b>Median Speed to Lead:</b> {filtered_metrics['median_speed_to_lead']}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Display columns - select most important ones
+    display_columns = []
+    preferred_cols = [
+        'Lead_FirstName', 'Lead_LastName', 'Lead_Name', 'Lead_Status', 
+        'Lead_Source', 'Lead_Owner_Name', 'Lead_CreatedDate', 
+        'Activity_Count', 'Speed_to_Lead', 'Has_L2QR', 'Is_Converted_Bool'
+    ]
+    
+    for col in preferred_cols:
+        if col in filtered_df.columns:
+            display_columns.append(col)
+    
+    # If we don't have enough columns, add more
+    if len(display_columns) < 7:
+        for col in filtered_df.columns:
+            if col not in display_columns and not col.startswith('Person_UUID'):
+                display_columns.append(col)
+                if len(display_columns) >= 10:
+                    break
+    
+    # Display the dataframe
+    if display_columns:
+        st.dataframe(
+            filtered_df[display_columns],
+            use_container_width=True,
+            height=400,
+            hide_index=True
+        )
+    else:
+        st.dataframe(
+            filtered_df,
+            use_container_width=True,
+            height=400,
+            hide_index=True
+        )
+    
+    # Export button
+    csv = filtered_df.to_csv(index=False)
+    st.download_button(
+        label="📥 Export Filtered Data",
+        data=csv,
+        file_name=f"surstitch_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+        mime="text/csv"
+    )
+else:
+    st.warning("No data loaded. Please upload a CSV file or ensure Output-Files directory contains person_master CSV files.")
+
+st.markdown('</div>', unsafe_allow_html=True)
