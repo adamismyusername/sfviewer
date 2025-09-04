@@ -19,7 +19,7 @@ st.set_page_config(
     page_title="SurStitch for Salesforce",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # Custom CSS that matches the HTML template
@@ -456,8 +456,6 @@ with st.sidebar:
 col_title, col_refresh = st.columns([10, 1])
 with col_title:
     st.markdown("### SurStitch for Salesforce")
-    # More prominent helper text about the sidebar
-    st.info("☰ **Click the > arrow in the top-left corner to open the sidebar for configuration options**")
 
 with col_refresh:
     if st.button("🔄", help="Refresh data"):
