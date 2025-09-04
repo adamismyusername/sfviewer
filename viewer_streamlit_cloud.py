@@ -189,6 +189,10 @@ if 'show_deltas' not in st.session_state:
     st.session_state.show_deltas = False
 if 'uploaded_file' not in st.session_state:
     st.session_state.uploaded_file = None
+if 'selected_columns' not in st.session_state:
+    st.session_state.selected_columns = None
+if 'column_labels' not in st.session_state:
+    st.session_state.column_labels = {}
 
 def find_output_files():
     """Find all person_master CSV files in Output-Files directory"""
@@ -578,6 +582,78 @@ st.markdown('<div class="table-card">', unsafe_allow_html=True)
 st.markdown("### Person Master Data")
 
 if df is not None and not df.empty:
+    # Column Configuration Section
+    with st.expander("⚙️ Configure Table Columns", expanded=False):
+        st.markdown("**Select columns to display:**")
+        
+        # Initialize selected columns if not set
+        if st.session_state.selected_columns is None:
+            # Default columns to show
+            default_cols = [
+                'Lead_FirstName', 'Lead_LastName', 'Lead_Name', 'Lead_Status', 
+                'Lead_Source', 'Lead_Owner_Name', 'Lead_CreatedDate', 
+                'Activity_Count', 'Speed_to_Lead', 'Has_L2QR', 'Is_Converted_Bool'
+            ]
+            # Only include defaults that exist in the dataframe
+            st.session_state.selected_columns = [col for col in default_cols if col in df.columns]
+            
+            # If no default columns found, take first 10 columns
+            if not st.session_state.selected_columns:
+                st.session_state.selected_columns = list(df.columns[:10])
+        
+        # Multi-select for columns
+        selected_columns = st.multiselect(
+            "Choose columns",
+            options=list(df.columns),
+            default=st.session_state.selected_columns,
+            key="column_selector"
+        )
+        st.session_state.selected_columns = selected_columns
+        
+        # Column renaming section
+        if selected_columns:
+            st.markdown("**Rename column headers (optional):**")
+            
+            # Create two columns for the renaming interface
+            rename_col1, rename_col2 = st.columns(2)
+            
+            with rename_col1:
+                st.markdown("*Original Name*")
+            with rename_col2:
+                st.markdown("*Display Name*")
+            
+            # Create input fields for each selected column
+            for col in selected_columns:
+                rename_col1, rename_col2 = st.columns(2)
+                
+                with rename_col1:
+                    st.text(col)
+                
+                with rename_col2:
+                    # Get existing label or use original column name
+                    current_label = st.session_state.column_labels.get(col, col)
+                    new_label = st.text_input(
+                        "Rename",
+                        value=current_label,
+                        key=f"rename_{col}",
+                        label_visibility="collapsed"
+                    )
+                    st.session_state.column_labels[col] = new_label
+            
+            # Quick actions
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button("Reset Names", type="secondary"):
+                    st.session_state.column_labels = {}
+                    st.rerun()
+            with col2:
+                if st.button("Select All Columns", type="secondary"):
+                    st.session_state.selected_columns = list(df.columns)
+                    st.rerun()
+            with col3:
+                if st.button("Clear Selection", type="secondary"):
+                    st.session_state.selected_columns = []
+                    st.rerun()
     # Filters
     col1, col2, col3, col4 = st.columns(4)
     
@@ -636,50 +712,62 @@ if df is not None and not df.empty:
     </div>
     """, unsafe_allow_html=True)
     
-    # Display columns - select most important ones
-    display_columns = []
-    preferred_cols = [
-        'Lead_FirstName', 'Lead_LastName', 'Lead_Name', 'Lead_Status', 
-        'Lead_Source', 'Lead_Owner_Name', 'Lead_CreatedDate', 
-        'Activity_Count', 'Speed_to_Lead', 'Has_L2QR', 'Is_Converted_Bool'
-    ]
-    
-    for col in preferred_cols:
-        if col in filtered_df.columns:
-            display_columns.append(col)
-    
-    # If we don't have enough columns, add more
-    if len(display_columns) < 7:
-        for col in filtered_df.columns:
-            if col not in display_columns and not col.startswith('Person_UUID'):
-                display_columns.append(col)
-                if len(display_columns) >= 10:
-                    break
-    
-    # Display the dataframe
-    if display_columns:
+    # Display the dataframe with selected columns and custom labels
+    if st.session_state.selected_columns:
+        # Create a copy of the dataframe with selected columns
+        display_df = filtered_df[st.session_state.selected_columns].copy()
+        
+        # Rename columns based on user labels
+        rename_dict = {}
+        for col in st.session_state.selected_columns:
+            if col in st.session_state.column_labels and st.session_state.column_labels[col]:
+                rename_dict[col] = st.session_state.column_labels[col]
+        
+        if rename_dict:
+            display_df = display_df.rename(columns=rename_dict)
+        
         st.dataframe(
-            filtered_df[display_columns],
+            display_df,
             use_container_width=True,
             height=400,
             hide_index=True
         )
     else:
-        st.dataframe(
-            filtered_df,
-            use_container_width=True,
-            height=400,
-            hide_index=True
-        )
+        st.warning("No columns selected. Please select columns to display in the configuration section above.")
     
-    # Export button
-    csv = filtered_df.to_csv(index=False)
-    st.download_button(
-        label="📥 Export Filtered Data",
-        data=csv,
-        file_name=f"surstitch_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-        mime="text/csv"
-    )
+    # Export button - exports with selected columns and custom labels
+    if st.session_state.selected_columns:
+        export_df = filtered_df[st.session_state.selected_columns].copy()
+        
+        # Apply custom labels to export
+        rename_dict = {}
+        for col in st.session_state.selected_columns:
+            if col in st.session_state.column_labels and st.session_state.column_labels[col]:
+                rename_dict[col] = st.session_state.column_labels[col]
+        
+        if rename_dict:
+            export_df = export_df.rename(columns=rename_dict)
+        
+        csv = export_df.to_csv(index=False)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.download_button(
+                label="📥 Export Filtered Data (Custom Columns)",
+                data=csv,
+                file_name=f"surstitch_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
+            )
+        with col2:
+            # Also offer full export
+            full_csv = filtered_df.to_csv(index=False)
+            st.download_button(
+                label="📥 Export All Data (All Columns)",
+                data=full_csv,
+                file_name=f"surstitch_full_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                type="secondary"
+            )
 else:
     st.warning("No data loaded. Please upload a CSV file or ensure Output-Files directory contains person_master CSV files.")
 
