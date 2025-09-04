@@ -192,6 +192,85 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"] > div {
         padding: 0 !important;
     }
+    
+    /* Column Manager Styles */
+    .column-manager {
+        background: #f9fafb;
+        border-radius: 8px;
+        padding: 8px;
+        margin: 8px 0;
+    }
+    
+    .column-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 8px;
+        margin: 2px 0;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+    
+    .column-row:hover {
+        border-color: #0176D3;
+        box-shadow: 0 1px 3px rgba(1, 118, 211, 0.1);
+    }
+    
+    .column-name {
+        flex: 1;
+        font-size: 14px;
+        font-weight: 500;
+        color: #374151;
+    }
+    
+    .column-actions {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .icon-btn {
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+    
+    .icon-btn:hover {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+    }
+    
+    .icon-btn.visibility-on {
+        color: #10b981;
+    }
+    
+    .icon-btn.visibility-off {
+        color: #9ca3af;
+    }
+    
+    .icon-btn.edit {
+        color: #6b7280;
+    }
+    
+    .icon-btn.edit:hover {
+        color: #0176D3;
+    }
+    
+    .column-input {
+        flex: 1;
+        padding: 4px 8px;
+        border: 1px solid #0176D3;
+        border-radius: 4px;
+        font-size: 14px;
+        background: white;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -206,6 +285,10 @@ if 'selected_columns' not in st.session_state:
     st.session_state.selected_columns = None
 if 'column_labels' not in st.session_state:
     st.session_state.column_labels = {}
+if 'editing_column' not in st.session_state:
+    st.session_state.editing_column = None
+if 'column_visibility' not in st.session_state:
+    st.session_state.column_visibility = {}
 
 def find_output_files():
     """Find all person_master CSV files in Output-Files directory"""
@@ -413,60 +496,101 @@ with st.sidebar:
     if df is not None and not df.empty:
         st.markdown("#### 📊 Table Columns")
         
-        # Initialize selected columns if not set
-        if st.session_state.selected_columns is None:
+        # Initialize column visibility if not set
+        if not st.session_state.column_visibility:
             # Default columns to show
             default_cols = [
                 'Lead_FirstName', 'Lead_LastName', 'Lead_Name', 'Lead_Status', 
                 'Lead_Source', 'Lead_Owner_Name', 'Lead_CreatedDate', 
                 'Activity_Count', 'Speed_to_Lead', 'Has_L2QR', 'Is_Converted_Bool'
             ]
-            # Only include defaults that exist in the dataframe
-            st.session_state.selected_columns = [col for col in default_cols if col in df.columns]
-            
-            # If no default columns found, take first 10 columns
-            if not st.session_state.selected_columns:
-                st.session_state.selected_columns = list(df.columns[:10])
+            # Initialize visibility for all columns
+            for col in df.columns:
+                st.session_state.column_visibility[col] = col in default_cols
         
-        # Multi-select for columns
-        selected_columns = st.multiselect(
-            "Select columns to display",
-            options=list(df.columns),
-            default=st.session_state.selected_columns,
-            key="column_selector"
-        )
-        st.session_state.selected_columns = selected_columns
+        # Update selected_columns based on visibility
+        st.session_state.selected_columns = [col for col, visible in st.session_state.column_visibility.items() if visible and col in df.columns]
+        
+        # Column Manager Container
+        st.markdown('<div class="column-manager">', unsafe_allow_html=True)
         
         # Quick actions
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
-            if st.button("Select All", type="secondary", use_container_width=True):
-                st.session_state.selected_columns = list(df.columns)
+            if st.button("👁️ Show All", type="secondary", use_container_width=True, key="show_all_cols"):
+                for col in df.columns:
+                    st.session_state.column_visibility[col] = True
                 st.rerun()
         with col2:
-            if st.button("Clear All", type="secondary", use_container_width=True):
-                st.session_state.selected_columns = []
+            if st.button("👁️‍🗨️ Hide All", type="secondary", use_container_width=True, key="hide_all_cols"):
+                for col in df.columns:
+                    st.session_state.column_visibility[col] = False
+                st.rerun()
+        with col3:
+            if st.button("🔄 Reset", type="secondary", use_container_width=True, key="reset_cols"):
+                st.session_state.column_labels = {}
+                st.session_state.editing_column = None
+                # Reset to default columns
+                default_cols = [
+                    'Lead_FirstName', 'Lead_LastName', 'Lead_Name', 'Lead_Status', 
+                    'Lead_Source', 'Lead_Owner_Name', 'Lead_CreatedDate', 
+                    'Activity_Count', 'Speed_to_Lead', 'Has_L2QR', 'Is_Converted_Bool'
+                ]
+                for col in df.columns:
+                    st.session_state.column_visibility[col] = col in default_cols
                 st.rerun()
         
-        # Column renaming in expander
-        with st.expander("Rename Columns", expanded=False):
-            if selected_columns:
-                st.markdown("**Custom column labels:**")
+        st.markdown("<div style='margin-top: 12px;'>", unsafe_allow_html=True)
+        
+        # Create rows for each column
+        for idx, col in enumerate(df.columns):
+            col_container = st.container()
+            with col_container:
+                # Create columns for layout
+                col_left, col_right = st.columns([3, 1])
                 
-                # Create input fields for each selected column
-                for col in selected_columns:
-                    # Get existing label or use original column name
-                    current_label = st.session_state.column_labels.get(col, col)
-                    new_label = st.text_input(
-                        col,
-                        value=current_label,
-                        key=f"rename_{col}"
-                    )
-                    st.session_state.column_labels[col] = new_label
+                with col_left:
+                    # Check if we're editing this column
+                    if st.session_state.editing_column == col:
+                        # Show text input for editing
+                        current_label = st.session_state.column_labels.get(col, col)
+                        new_label = st.text_input(
+                            "Edit column name",
+                            value=current_label,
+                            key=f"edit_input_{col}",
+                            label_visibility="collapsed"
+                        )
+                        # Save on Enter or when focus changes
+                        if new_label != current_label:
+                            st.session_state.column_labels[col] = new_label
+                            st.session_state.editing_column = None
+                            st.rerun()
+                    else:
+                        # Display column name (custom label if exists)
+                        display_name = st.session_state.column_labels.get(col, col)
+                        st.markdown(f"<div class='column-name'>{display_name}</div>", unsafe_allow_html=True)
                 
-                if st.button("Reset Labels", type="secondary", use_container_width=True):
-                    st.session_state.column_labels = {}
-                    st.rerun()
+                with col_right:
+                    # Create button columns for icons
+                    btn_col1, btn_col2 = st.columns(2)
+                    
+                    with btn_col1:
+                        # Visibility toggle button
+                        is_visible = st.session_state.column_visibility.get(col, False)
+                        visibility_emoji = "👁️" if is_visible else "👁️‍🗨️"
+                        visibility_key = f"vis_{col}_{idx}"
+                        if st.button(visibility_emoji, key=visibility_key, help="Show/Hide column"):
+                            st.session_state.column_visibility[col] = not is_visible
+                            st.rerun()
+                    
+                    with btn_col2:
+                        # Edit button
+                        edit_key = f"edit_{col}_{idx}"
+                        if st.button("✏️", key=edit_key, help="Rename column"):
+                            st.session_state.editing_column = col
+                            st.rerun()
+        
+        st.markdown("</div></div>", unsafe_allow_html=True)
 
 # MAIN AREA
 # Header with title and refresh button
