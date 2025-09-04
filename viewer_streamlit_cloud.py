@@ -40,7 +40,7 @@ st.markdown("""
     /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
+    /* header {visibility: hidden;} */
     
     /* Remove extra padding at the top of the page */
     .block-container {
