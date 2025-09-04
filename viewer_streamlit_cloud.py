@@ -399,7 +399,7 @@ else:
 metrics = calculate_metrics(df)
 
 # Main KPIs Band
-st.markdown("### Primary Metrics")
+st.markdown("### Lead Metrics")
 
 # Now only 3 columns since Lead->Convert moved to Converted Count card
 col1, col2, col3 = st.columns(3)
@@ -500,7 +500,7 @@ with col3:
 
 
 # Secondary KPIs Band
-st.markdown("### Secondary Metrics")
+st.markdown("### Calling Metrics")
 
 # Now only 1 card since both conversion metrics moved to primary
 col1 = st.columns(1)[0]
