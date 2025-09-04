@@ -40,25 +40,20 @@ st.markdown("""
     /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden; display: none}
-
-    /* Custom Header */
-    .custom-header {
-        background: #0176D3;
-        color: white;
-        /* padding: 1rem; */
-        padding: 0px;
-        margin: -3rem -3rem 2rem -3rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    header {visibility: hidden;}
+    
+    /* Remove extra padding at the top of the page */
+    .block-container {
+        padding-top: 1rem !important;
+        max-width: 100%;
     }
-
-    .header-title {
-        font-size: 20px;
-        font-weight: 800;
+    
+    /* Reduce gap between elements */
+    .stApp > div > div {
+        padding-top: 0rem;
     }
+    
+    /* Remove the custom header styles since we're not using it */
 
     /* KPI Cards */
     .kpi-card {
@@ -326,14 +321,8 @@ def generate_delta(current, trend='up'):
         'mom': mom
     }
 
-# Custom Header
-## st.markdown("""
-## <div class="custom-header">
-##    <div class="header-title">⚡ SurStitch for Salesforce</div>
-## </div>
-## """, unsafe_allow_html=True)
-
-# File handling section
+# File handling section - now at the top without extra header
+st.markdown("### SurStitch for Salesforce")
 col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
 
 with col1:
