@@ -14,9 +14,9 @@ from datetime import datetime, timedelta, timezone
 import random
 import json
 
-# Last updated timestamp - UPDATE THIS when making code changes (use UTC time)
-# Note: 13:30 UTC = 6:30 AM PST (UTC-7 during DST) or 5:30 AM PST (UTC-8 standard time)
-LAST_UPDATED = datetime(2025, 9, 5, 13, 30, 0, tzinfo=timezone.utc)  # UTC time
+# Last updated timestamp - UPDATE THIS when making code changes
+# Use UTC timezone for accurate relative time calculation
+LAST_UPDATED = datetime(2025, 9, 5, 6, 57, 0, tzinfo=timezone.utc)
 
 # Page config - MUST BE FIRST
 st.set_page_config(
@@ -464,16 +464,13 @@ def get_relative_time(last_updated):
 with st.sidebar:
     # Last Updated Display
     # Format time with Windows-compatible formatting
-    # Convert UTC to local time for display
-    local_time = LAST_UPDATED.astimezone() if LAST_UPDATED.tzinfo else LAST_UPDATED
-    hour = local_time.strftime("%I").lstrip("0")  # Remove leading zero from hour
-    formatted_date = local_time.strftime(f"%m/%d/%Y at {hour}:%M %p")
-    # Add timezone indicator
-    tz_name = "UTC" if LAST_UPDATED.tzinfo else "Local"
+    # Display the time as set (no conversion needed)
+    hour = LAST_UPDATED.strftime("%I").lstrip("0")  # Remove leading zero from hour
+    formatted_date = LAST_UPDATED.strftime(f"%m/%d/%Y at {hour}:%M %p")
     relative_time = get_relative_time(LAST_UPDATED)
     st.markdown(f"""
     <div style="background: #f0f7ff; border: 1px solid #d0e4f7; border-radius: 8px; padding: 10px; margin-bottom: 16px; text-align: center;">
-        <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Last Updated ({tz_name})</div>
+        <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Last Updated</div>
         <div style="font-size: 13px; color: #1B5297; font-weight: 600;">{formatted_date}</div>
         <div style="font-size: 12px; color: #0176D3; margin-top: 2px;">{relative_time}</div>
     </div>
