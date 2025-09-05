@@ -515,6 +515,8 @@ def calculate_column_widths(columns, column_labels):
             final_width = 80  # Fixed width for inbound calls
         elif col == 'Activity_Outbound_Calls':
             final_width = 80  # Fixed width for outbound calls
+        elif col == 'Activity_Count':
+            final_width = 80  # Fixed width for activity count
         
         # Create column configuration
         column_config[display_label] = st.column_config.Column(
