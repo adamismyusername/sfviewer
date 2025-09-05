@@ -14,9 +14,8 @@ from datetime import datetime, timedelta, timezone
 import random
 import json
 
-# Last updated timestamp - UPDATE THIS when making code changes
-# Use UTC timezone for accurate relative time calculation
-LAST_UPDATED = datetime(2025, 9, 5, 6, 57, 0, tzinfo=timezone.utc)
+# Last updated timestamp - UPDATE THIS when making code changes (use your local time)
+LAST_UPDATED = datetime(2025, 9, 5, 7, 30, 0)  # Format: year, month, day, hour, minute, second
 
 # Page config - MUST BE FIRST
 st.set_page_config(
@@ -427,11 +426,8 @@ def generate_delta(current, trend='up'):
 
 def get_relative_time(last_updated):
     """Calculate relative time from last update"""
-    # Use UTC if the timestamp is timezone-aware, otherwise use local time
-    if last_updated.tzinfo:
-        now = datetime.now(timezone.utc)
-    else:
-        now = datetime.now()
+    # Always use local time for comparison
+    now = datetime.now()
     diff = now - last_updated
     
     seconds = diff.total_seconds()
