@@ -19,7 +19,7 @@ import json
 PDT = timezone(timedelta(hours=-7))
 
 # Last updated timestamp - UPDATE THIS when making code changes (use your local time with timezone)
-LAST_UPDATED = datetime(2025, 9, 5, 15, 35, 0, tzinfo=PDT)
+LAST_UPDATED = datetime(2025, 9, 5, 14, 45, 0, tzinfo=PDT)
 
 # Predefined column label mappings - edit this dictionary to rename columns directly in code
 # Format: 'original_column_name': 'Display Name'
@@ -266,32 +266,6 @@ st.markdown("""
         padding: 0 !important;
     }
     
-    /* Floating Menu Button for Sidebar Toggle */
-    .sidebar-toggle-btn {
-        position: fixed;
-        top: 14px;
-        left: 14px;
-        z-index: 999999;
-        background: #0176D3;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 12px;
-        font-size: 18px;
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    
-    .sidebar-toggle-btn:hover {
-        background: #014d8a;
-        transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-    }
-    
     /* Column Manager Styles */
     .column-manager {
         background: #f9fafb;
@@ -389,8 +363,6 @@ if 'editing_column' not in st.session_state:
     st.session_state.editing_column = None
 if 'column_visibility' not in st.session_state:
     st.session_state.column_visibility = {}
-if 'sidebar_visible' not in st.session_state:
-    st.session_state.sidebar_visible = True
 
 def find_output_files():
     """Find all person_master CSV files in Output-Files directory"""
@@ -620,39 +592,25 @@ def get_relative_time(last_updated):
         return f"{years} year{'s' if years != 1 else ''} ago"
 
 # SIDEBAR CONFIGURATION
-# Create a placeholder for the expand button at the very top
-expand_button_container = st.container()
-
-# Check if we need to show the expand button
-show_expand_button = False
-
-if st.session_state.sidebar_visible:
-    with st.sidebar:
-        # Add a collapse button at the top of sidebar
-        if st.button("✕ Hide Sidebar", key="collapse_sidebar", help="Hide the sidebar", use_container_width=True):
-            st.session_state.sidebar_visible = False
-            st.rerun()
-        
-        st.divider()
-        
-        # Last Updated Display
-        # Format time with Windows-compatible formatting
-        # Display the time as set (no conversion needed)
-        hour = LAST_UPDATED.strftime("%I").lstrip("0")  # Remove leading zero from hour
-        formatted_date = LAST_UPDATED.strftime(f"%m/%d/%Y at {hour}:%M %p")
-        relative_time = get_relative_time(LAST_UPDATED)
-        st.markdown(f"""
-        <div style="background: #f0f7ff; border: 1px solid #d0e4f7; border-radius: 8px; padding: 10px; margin-bottom: 16px; text-align: center;">
-            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Last Updated</div>
-            <div style="font-size: 13px; color: #1B5297; font-weight: 600;">{formatted_date}</div>
-            <div style="font-size: 12px; color: #0176D3; margin-top: 2px;">{relative_time}</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("### ⚙️ Configuration")
-        
-        # File Management Section
-        st.markdown("#### 📁 Data Source")
+with st.sidebar:
+    # Last Updated Display
+    # Format time with Windows-compatible formatting
+    # Display the time as set (no conversion needed)
+    hour = LAST_UPDATED.strftime("%I").lstrip("0")  # Remove leading zero from hour
+    formatted_date = LAST_UPDATED.strftime(f"%m/%d/%Y at {hour}:%M %p")
+    relative_time = get_relative_time(LAST_UPDATED)
+    st.markdown(f"""
+    <div style="background: #f0f7ff; border: 1px solid #d0e4f7; border-radius: 8px; padding: 10px; margin-bottom: 16px; text-align: center;">
+        <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Last Updated</div>
+        <div style="font-size: 13px; color: #1B5297; font-weight: 600;">{formatted_date}</div>
+        <div style="font-size: 12px; color: #0176D3; margin-top: 2px;">{relative_time}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("### ⚙️ Configuration")
+    
+    # File Management Section
+    st.markdown("#### 📁 Data Source")
     
     # Load data early so we can check if we have data
     output_files = find_output_files()
@@ -828,18 +786,6 @@ if st.session_state.sidebar_visible:
                     st.rerun()
         
         st.markdown("</div></div>", unsafe_allow_html=True)
-else:
-    # Sidebar is hidden, set flag to show expand button
-    show_expand_button = True
-
-# Render the expand button if sidebar is hidden
-if show_expand_button:
-    with expand_button_container:
-        col1, col2 = st.columns([2, 10])
-        with col1:
-            if st.button("☰ Show Sidebar", key="expand_sidebar", help="Show the sidebar", type="primary"):
-                st.session_state.sidebar_visible = True
-                st.rerun()
 
 # MAIN AREA
 # Header with title and refresh button
