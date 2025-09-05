@@ -19,7 +19,7 @@ import json
 PDT = timezone(timedelta(hours=-7))
 
 # Last updated timestamp - UPDATE THIS when making code changes (use your local time with timezone)
-LAST_UPDATED = datetime(2025, 9, 5, 10, 45, 0, tzinfo=PDT)
+LAST_UPDATED = datetime(2025, 9, 5, 12, 30, 0, tzinfo=PDT)
 
 # Predefined column label mappings - edit this dictionary to rename columns directly in code
 # Format: 'original_column_name': 'Display Name'
@@ -468,6 +468,57 @@ def calculate_metrics(df):
         metrics['activity_count_avg'] = 0
     
     return metrics
+
+def calculate_column_widths(columns, column_labels):
+    """Calculate appropriate column widths based on header labels.
+    
+    Args:
+        columns: List of column names
+        column_labels: Dictionary mapping column names to display labels
+    
+    Returns:
+        Dictionary of column configurations with calculated widths
+    """
+    column_config = {}
+    
+    for col in columns:
+        # Get the display label for this column
+        display_label = column_labels.get(col, col)
+        
+        # Calculate width based on label length
+        # Base calculation: ~8 pixels per character + 40 pixel buffer for padding/sorting icon
+        char_width = 8
+        buffer = 40
+        calculated_width = len(display_label) * char_width + buffer
+        
+        # Set minimum and maximum constraints
+        min_width = 80   # Minimum width for very short labels
+        max_width = 400  # Maximum width for very long labels
+        
+        # Apply constraints
+        final_width = max(min_width, min(calculated_width, max_width))
+        
+        # Special cases for known column types that need more space
+        if 'UUID' in col or 'ID' in col or 'RecordId' in col:
+            final_width = max(final_width, 150)  # IDs need more space
+        elif 'email' in col.lower():
+            final_width = max(final_width, 200)  # Emails are typically longer
+        elif 'name' in col.lower() and 'full' in col.lower():
+            final_width = max(final_width, 180)  # Full names need more space
+        elif 'date' in col.lower() or 'datetime' in col.lower():
+            final_width = max(final_width, 140)  # Dates/times need consistent space
+        elif 'phone' in col.lower():
+            final_width = max(final_width, 120)  # Phone numbers
+        elif 'speed_to_lead' in col.lower():
+            final_width = max(final_width, 120)  # Time format HH:MM
+        
+        # Create column configuration
+        column_config[display_label] = st.column_config.Column(
+            width=final_width,
+            help=f"Original field: {col}"
+        )
+    
+    return column_config
 
 def generate_sparkline_data(base_value, num_points=8):
     """Generate fake sparkline data for demo purposes"""
@@ -958,8 +1009,12 @@ if df is not None and not df.empty:
         if rename_dict:
             display_df = display_df.rename(columns=rename_dict)
         
+        # Calculate column widths based on header labels
+        column_config = calculate_column_widths(st.session_state.selected_columns, st.session_state.column_labels)
+        
         st.dataframe(
             display_df,
+            column_config=column_config,
             use_container_width=True,
             height=400,
             hide_index=True
