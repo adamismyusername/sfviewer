@@ -500,9 +500,11 @@ with st.sidebar:
         if not st.session_state.column_visibility:
             # Default columns to show
             default_cols = [
-                'Lead_FirstName', 'Lead_LastName', 'Lead_Name', 'Lead_Status', 
-                'Lead_Source', 'Lead_Owner_Name', 'Lead_CreatedDate', 
-                'Activity_Count', 'Speed_to_Lead', 'Has_L2QR', 'Is_Converted_Bool'
+                'Person_UUID', 'Lead_FirstName', 'Lead_Status', 'Lead_Status_Detail',
+                'Has_L2QR', 'Activity_Count', 'Speed_to_Lead', 
+                'Activity_Inbound_Calls', 'Activity_Outbound_Calls', 'Activity_Text_Messages',
+                'Activity_Emails', 'Activity_Voicemails', 'Activity_Form_Fills',
+                'Is_Converted_Bool', 'Lead_RecordId'
             ]
             # Initialize visibility for all columns
             for col in df.columns:
@@ -532,9 +534,11 @@ with st.sidebar:
                 st.session_state.editing_column = None
                 # Reset to default columns
                 default_cols = [
-                    'Lead_FirstName', 'Lead_LastName', 'Lead_Name', 'Lead_Status', 
-                    'Lead_Source', 'Lead_Owner_Name', 'Lead_CreatedDate', 
-                    'Activity_Count', 'Speed_to_Lead', 'Has_L2QR', 'Is_Converted_Bool'
+                    'Person_UUID', 'Lead_FirstName', 'Lead_Status', 'Lead_Status_Detail',
+                    'Has_L2QR', 'Activity_Count', 'Speed_to_Lead', 
+                    'Activity_Inbound_Calls', 'Activity_Outbound_Calls', 'Activity_Text_Messages',
+                    'Activity_Emails', 'Activity_Voicemails', 'Activity_Form_Fills',
+                    'Is_Converted_Bool', 'Lead_RecordId'
                 ]
                 for col in df.columns:
                     st.session_state.column_visibility[col] = col in default_cols
