@@ -45,7 +45,7 @@ COLUMN_LABEL_DICTIONARY = {
     'ConvertedDate': 'Converted Date',
     
     # Activity Metrics
-    'Activity_Count': 'Total Activities',
+    'Activity_Count': 'Activities',
     'Activity_Inbound_Calls': 'Calls (In)',
     'Activity_Outbound_Calls': 'Calls (Out)', 
     'Activity_Text_Messages': 'SMS',
