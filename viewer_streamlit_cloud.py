@@ -19,7 +19,7 @@ import json
 PDT = timezone(timedelta(hours=-7))
 
 # Last updated timestamp - UPDATE THIS when making code changes (use your local time with timezone)
-LAST_UPDATED = datetime(2025, 9, 5, 16, 0, 0, tzinfo=PDT)
+LAST_UPDATED = datetime(2025, 9, 5, 16, 15, 0, tzinfo=PDT)
 
 # Predefined column label mappings - edit this dictionary to rename columns directly in code
 # Format: 'original_column_name': 'Display Name'
