@@ -509,7 +509,7 @@ def calculate_column_widths(columns, column_labels):
             final_width = max(final_width, 140)  # Dates/times need consistent space
         elif 'phone' in col.lower():
             final_width = max(final_width, 120)  # Phone numbers
-        elif 'activity_inbound_calls' in col.lower():
+        elif 'calls (in)' in col.lower():
             final_width = max(final_width, 80)  # Calls (In)
         elif 'speed_to_lead' in col.lower():
             final_width = max(final_width, 80)  # Time format HH:MM
