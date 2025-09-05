@@ -517,17 +517,17 @@ with st.sidebar:
         # Quick actions
         col1, col2, col3 = st.columns(3)
         with col1:
-            if st.button("👁️ Show All", type="secondary", use_container_width=True, key="show_all_cols"):
+            if st.button("Show All", type="secondary", key="show_all_cols"):
                 for col in df.columns:
                     st.session_state.column_visibility[col] = True
                 st.rerun()
         with col2:
-            if st.button("👁️‍🗨️ Hide All", type="secondary", use_container_width=True, key="hide_all_cols"):
+            if st.button("Hide All", type="secondary", key="hide_all_cols"):
                 for col in df.columns:
                     st.session_state.column_visibility[col] = False
                 st.rerun()
         with col3:
-            if st.button("🔄 Reset", type="secondary", use_container_width=True, key="reset_cols"):
+            if st.button("Reset", type="secondary", key="reset_cols"):
                 st.session_state.column_labels = {}
                 st.session_state.editing_column = None
                 # Reset to default columns
@@ -542,53 +542,57 @@ with st.sidebar:
         
         st.markdown("<div style='margin-top: 12px;'>", unsafe_allow_html=True)
         
-        # Create rows for each column
+        # Create rows for each column with more compact layout
         for idx, col in enumerate(df.columns):
-            col_container = st.container()
-            with col_container:
-                # Create columns for layout
-                col_left, col_right = st.columns([3, 1])
-                
-                with col_left:
-                    # Check if we're editing this column
-                    if st.session_state.editing_column == col:
-                        # Show text input for editing
-                        current_label = st.session_state.column_labels.get(col, col)
-                        new_label = st.text_input(
-                            "Edit column name",
-                            value=current_label,
-                            key=f"edit_input_{col}",
-                            label_visibility="collapsed"
-                        )
-                        # Save on Enter or when focus changes
-                        if new_label != current_label:
-                            st.session_state.column_labels[col] = new_label
-                            st.session_state.editing_column = None
-                            st.rerun()
-                    else:
-                        # Display column name (custom label if exists)
-                        display_name = st.session_state.column_labels.get(col, col)
-                        st.markdown(f"<div class='column-name'>{display_name}</div>", unsafe_allow_html=True)
-                
-                with col_right:
-                    # Create button columns for icons
-                    btn_col1, btn_col2 = st.columns(2)
-                    
-                    with btn_col1:
-                        # Visibility toggle button
-                        is_visible = st.session_state.column_visibility.get(col, False)
-                        visibility_emoji = "👁️" if is_visible else "👁️‍🗨️"
-                        visibility_key = f"vis_{col}_{idx}"
-                        if st.button(visibility_emoji, key=visibility_key, help="Show/Hide column"):
-                            st.session_state.column_visibility[col] = not is_visible
-                            st.rerun()
-                    
-                    with btn_col2:
-                        # Edit button
-                        edit_key = f"edit_{col}_{idx}"
-                        if st.button("✏️", key=edit_key, help="Rename column"):
-                            st.session_state.editing_column = col
-                            st.rerun()
+            # Use columns directly without container for better height control
+            col_left, col_vis, col_edit = st.columns([4, 1, 1])
+            
+            with col_left:
+                # Check if we're editing this column
+                if st.session_state.editing_column == col:
+                    # Show text input for editing
+                    current_label = st.session_state.column_labels.get(col, col)
+                    new_label = st.text_input(
+                        "Edit column name",
+                        value=current_label,
+                        key=f"edit_input_{col}",
+                        label_visibility="collapsed"
+                    )
+                    # Save on Enter or when focus changes
+                    if new_label != current_label:
+                        st.session_state.column_labels[col] = new_label
+                        st.session_state.editing_column = None
+                        st.rerun()
+                else:
+                    # Display column name (custom label if exists)
+                    display_name = st.session_state.column_labels.get(col, col)
+                    st.markdown(f"<div class='column-name' style='padding-top: 5px;'>{display_name}</div>", unsafe_allow_html=True)
+            
+            with col_vis:
+                # Visibility toggle button with circle indicator
+                is_visible = st.session_state.column_visibility.get(col, False)
+                visibility_indicator = "🟢" if is_visible else "⚫"
+                visibility_key = f"vis_{col}_{idx}"
+                if st.button(
+                    visibility_indicator, 
+                    key=visibility_key, 
+                    help="Show/Hide column",
+                    use_container_width=True
+                ):
+                    st.session_state.column_visibility[col] = not is_visible
+                    st.rerun()
+            
+            with col_edit:
+                # Edit button
+                edit_key = f"edit_{col}_{idx}"
+                if st.button(
+                    "✏️", 
+                    key=edit_key, 
+                    help="Rename column",
+                    use_container_width=True
+                ):
+                    st.session_state.editing_column = col
+                    st.rerun()
         
         st.markdown("</div></div>", unsafe_allow_html=True)
 
