@@ -14,8 +14,12 @@ from datetime import datetime, timedelta, timezone
 import random
 import json
 
-# Last updated timestamp - UPDATE THIS when making code changes (use your local time)
-LAST_UPDATED = datetime(2025, 9, 5, 7, 30, 0)  # Format: year, month, day, hour, minute, second
+# Define Pacific timezone (PDT = UTC-7 during daylight saving, PST = UTC-8 standard)
+# September is during daylight saving time, so use PDT (UTC-7)
+PDT = timezone(timedelta(hours=-7))
+
+# Last updated timestamp - UPDATE THIS when making code changes (use your local time with timezone)
+LAST_UPDATED = datetime(2025, 9, 5, 7, 30, 0, tzinfo=PDT)
 
 # Page config - MUST BE FIRST
 st.set_page_config(
@@ -426,9 +430,16 @@ def generate_delta(current, trend='up'):
 
 def get_relative_time(last_updated):
     """Calculate relative time from last update"""
-    # Always use local time for comparison
-    now = datetime.now()
-    diff = now - last_updated
+    # Handle timezone-aware timestamps properly
+    if last_updated.tzinfo:
+        # If timestamp has timezone, compare in UTC
+        now = datetime.now(timezone.utc)
+        last_updated_utc = last_updated.astimezone(timezone.utc)
+        diff = now - last_updated_utc
+    else:
+        # If no timezone, use local time
+        now = datetime.now()
+        diff = now - last_updated
     
     seconds = diff.total_seconds()
     minutes = seconds / 60
