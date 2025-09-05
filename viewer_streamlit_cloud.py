@@ -502,7 +502,7 @@ def calculate_column_widths(columns, column_labels):
         if 'UUID' in col or 'ID' in col or 'RecordId' in col:
             final_width = max(final_width, 150)  # IDs need more space
         elif 'email' in col.lower():
-            final_width = max(final_width, 200)  # Emails are typically longer
+            final_width = max(final_width, 80)  # Emails are typically longer
         elif 'name' in col.lower() and 'full' in col.lower():
             final_width = max(final_width, 180)  # Full names need more space
         elif 'date' in col.lower() or 'datetime' in col.lower():
