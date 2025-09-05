@@ -510,7 +510,7 @@ def calculate_column_widths(columns, column_labels):
         elif 'phone' in col.lower():
             final_width = max(final_width, 120)  # Phone numbers
         elif 'speed_to_lead' in col.lower():
-            final_width = max(final_width, 120)  # Time format HH:MM
+            final_width = max(final_width, 80)  # Time format HH:MM
         
         # Create column configuration
         column_config[display_label] = st.column_config.Column(
