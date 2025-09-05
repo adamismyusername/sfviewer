@@ -19,7 +19,73 @@ import json
 PDT = timezone(timedelta(hours=-7))
 
 # Last updated timestamp - UPDATE THIS when making code changes (use your local time with timezone)
-LAST_UPDATED = datetime(2025, 9, 5, 7, 30, 0, tzinfo=PDT)
+LAST_UPDATED = datetime(2025, 9, 5, 10, 45, 0, tzinfo=PDT)
+
+# Predefined column label mappings - edit this dictionary to rename columns directly in code
+# Format: 'original_column_name': 'Display Name'
+# These mappings are applied automatically when the app loads
+# Users can still override these via the UI column rename feature
+COLUMN_LABEL_DICTIONARY = {
+    # Person and Identity Fields
+    'Person_UUID': 'Person ID',
+    'lead_first_name': 'First Name', 
+    'lead_last_name': 'Last Name',
+    'lead_full_name': 'Full Name',
+    'Email_Clean': 'Email',
+    'Phone_Clean': 'Phone',
+    
+    # Lead Information
+    'Lead_Status': 'Status',
+    'Lead_Status_Detail': 'Status Detail',
+    'Lead_Source': 'Source',
+    'Lead_RecordId': 'Lead ID',
+    'Is_Converted_Bool': 'Converted',
+    'Has_L2QR': 'Has L2QR',
+    'LeadCreatedDate': 'Lead Created',
+    'ConvertedDate': 'Converted Date',
+    
+    # Activity Metrics
+    'Activity_Count': 'Total Activities',
+    'Activity_Inbound_Calls': 'Inbound Calls',
+    'Activity_Outbound_Calls': 'Outbound Calls', 
+    'Activity_Text_Messages': 'Text Messages',
+    'Activity_Emails': 'Emails Sent',
+    'Activity_Voicemails': 'Voicemails',
+    'Activity_Form_Fills': 'Form Fills',
+    
+    # Speed and Performance Metrics
+    'Speed_to_Lead': 'Response Time',
+    'First_Call_DateTime': 'First Call Time',
+    'Activity_First_Touch': 'First Touch Time',
+    
+    # Company and Contact Information
+    'Company': 'Company Name',
+    'Title': 'Job Title',
+    'lead_city': 'City',
+    'lead_state': 'State',
+    'lead_country': 'Country',
+    'lead_postal_code': 'Zip Code',
+    
+    # Marketing and Campaign Fields
+    'utm_source': 'UTM Source',
+    'utm_medium': 'UTM Medium', 
+    'utm_campaign': 'UTM Campaign',
+    'utm_content': 'UTM Content',
+    'utm_term': 'UTM Term',
+    
+    # Owner and Assignment
+    'Lead_Owner': 'Owner',
+    'Lead_Owner_Role': 'Owner Role',
+    
+    # Additional metrics and fields
+    'MQL_Date': 'MQL Date',
+    'SQL_Date': 'SQL Date',
+    'Opportunity_Amount': 'Opportunity Value',
+    'Days_to_Convert': 'Days to Convert',
+    
+    # Add more column mappings as needed
+    # Simply edit this dictionary to rename columns without using the UI
+}
 
 # Page config - MUST BE FIRST
 st.set_page_config(
@@ -291,7 +357,8 @@ if 'uploaded_file' not in st.session_state:
 if 'selected_columns' not in st.session_state:
     st.session_state.selected_columns = None
 if 'column_labels' not in st.session_state:
-    st.session_state.column_labels = {}
+    # Initialize with predefined dictionary labels
+    st.session_state.column_labels = COLUMN_LABEL_DICTIONARY.copy()
 if 'editing_column' not in st.session_state:
     st.session_state.editing_column = None
 if 'column_visibility' not in st.session_state:
@@ -590,11 +657,12 @@ with st.sidebar:
                 st.rerun()
         with col3:
             if st.button("Reset", type="secondary", key="reset_cols"):
-                st.session_state.column_labels = {}
+                # Reset to predefined dictionary labels
+                st.session_state.column_labels = COLUMN_LABEL_DICTIONARY.copy()
                 st.session_state.editing_column = None
                 # Reset to default columns
                 default_cols = [
-                    'Person_UUID', 'Lead_FirstName', 'Lead_Status', 'Lead_Status_Detail',
+                    'Person_UUID', 'lead_first_name', 'Lead_Status', 'Lead_Status_Detail',
                     'Has_L2QR', 'Activity_Count', 'Speed_to_Lead', 
                     'Activity_Inbound_Calls', 'Activity_Outbound_Calls', 'Activity_Text_Messages',
                     'Activity_Emails', 'Activity_Voicemails', 'Activity_Form_Fills',
@@ -615,7 +683,8 @@ with st.sidebar:
                 # Check if we're editing this column
                 if st.session_state.editing_column == col:
                     # Show text input for editing
-                    current_label = st.session_state.column_labels.get(col, col)
+                    # Check session state first, then dictionary, then use original column name
+                    current_label = st.session_state.column_labels.get(col, COLUMN_LABEL_DICTIONARY.get(col, col))
                     new_label = st.text_input(
                         "Edit column name",
                         value=current_label,
@@ -628,8 +697,9 @@ with st.sidebar:
                         st.session_state.editing_column = None
                         st.rerun()
                 else:
-                    # Display column name (custom label if exists)
-                    display_name = st.session_state.column_labels.get(col, col)
+                    # Display column name (custom label from session or dictionary)
+                    # Priority: session state > dictionary > original column name
+                    display_name = st.session_state.column_labels.get(col, COLUMN_LABEL_DICTIONARY.get(col, col))
                     st.markdown(f"<div class='column-name' style='padding-top: 5px;'>{display_name}</div>", unsafe_allow_html=True)
             
             with col_vis:
