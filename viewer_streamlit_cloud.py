@@ -19,7 +19,7 @@ import json
 PDT = timezone(timedelta(hours=-7))
 
 # Last updated timestamp - UPDATE THIS when making code changes (use your local time with timezone)
-LAST_UPDATED = datetime(2025, 9, 5, 12, 30, 0, tzinfo=PDT)
+LAST_UPDATED = datetime(2025, 9, 5, 14, 45, 0, tzinfo=PDT)
 
 # Predefined column label mappings - edit this dictionary to rename columns directly in code
 # Format: 'original_column_name': 'Display Name'
@@ -509,10 +509,12 @@ def calculate_column_widths(columns, column_labels):
             final_width = max(final_width, 140)  # Dates/times need consistent space
         elif 'phone' in col.lower():
             final_width = max(final_width, 120)  # Phone numbers
-        elif 'calls (in)' in col.lower():
-            final_width = max(final_width, 80)  # Calls (In)
         elif 'speed_to_lead' in col.lower():
             final_width = max(final_width, 80)  # Time format HH:MM
+        elif col == 'Activity_Inbound_Calls':
+            final_width = 80  # Fixed width for inbound calls
+        elif col == 'Activity_Outbound_Calls':
+            final_width = 80  # Fixed width for outbound calls
         
         # Create column configuration
         column_config[display_label] = st.column_config.Column(
