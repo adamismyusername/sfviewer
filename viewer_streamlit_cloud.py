@@ -14,6 +14,9 @@ from datetime import datetime, timedelta
 import random
 import json
 
+# Last updated timestamp - UPDATE THIS when making code changes
+LAST_UPDATED = datetime(2025, 1, 5, 18, 30, 0)  # Format: year, month, day, hour, minute, second
+
 # Page config - MUST BE FIRST
 st.set_page_config(
     page_title="SurStitch for Salesforce",
@@ -421,8 +424,52 @@ def generate_delta(current, trend='up'):
         'mom': mom
     }
 
+def get_relative_time(last_updated):
+    """Calculate relative time from last update"""
+    now = datetime.now()
+    diff = now - last_updated
+    
+    seconds = diff.total_seconds()
+    minutes = seconds / 60
+    hours = minutes / 60
+    days = hours / 24
+    
+    if seconds < 60:
+        return "just now"
+    elif minutes < 60:
+        mins = int(minutes)
+        return f"{mins} minute{'s' if mins != 1 else ''} ago"
+    elif hours < 24:
+        hrs = int(hours)
+        return f"{hrs} hour{'s' if hrs != 1 else ''} ago"
+    elif days < 7:
+        d = int(days)
+        return f"{d} day{'s' if d != 1 else ''} ago"
+    elif days < 30:
+        weeks = int(days / 7)
+        return f"{weeks} week{'s' if weeks != 1 else ''} ago"
+    elif days < 365:
+        months = int(days / 30)
+        return f"{months} month{'s' if months != 1 else ''} ago"
+    else:
+        years = int(days / 365)
+        return f"{years} year{'s' if years != 1 else ''} ago"
+
 # SIDEBAR CONFIGURATION
 with st.sidebar:
+    # Last Updated Display
+    # Format time with Windows-compatible formatting
+    hour = LAST_UPDATED.strftime("%I").lstrip("0")  # Remove leading zero from hour
+    formatted_date = LAST_UPDATED.strftime(f"%m/%d/%Y at {hour}:%M %p")
+    relative_time = get_relative_time(LAST_UPDATED)
+    st.markdown(f"""
+    <div style="background: #f0f7ff; border: 1px solid #d0e4f7; border-radius: 8px; padding: 10px; margin-bottom: 16px; text-align: center;">
+        <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Last Updated</div>
+        <div style="font-size: 13px; color: #1B5297; font-weight: 600;">{formatted_date}</div>
+        <div style="font-size: 12px; color: #0176D3; margin-top: 2px;">{relative_time}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.markdown("### ⚙️ Configuration")
     
     # File Management Section
