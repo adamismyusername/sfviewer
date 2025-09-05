@@ -500,9 +500,11 @@ with st.sidebar:
         if not st.session_state.column_visibility:
             # Default columns to show
             default_cols = [
-                'Lead_FirstName', 'Lead_LastName', 'Lead_Name', 'Lead_Status', 
-                'Lead_Source', 'Lead_Owner_Name', 'Lead_CreatedDate', 
-                'Activity_Count', 'Speed_to_Lead', 'Has_L2QR', 'Is_Converted_Bool'
+                'Person_UUID', 'lead_first_name', 'lead_status', 'lead_status_detail',
+                'Has_L2QR', 'Activity_Count', 'Speed_to_Lead', 
+                'Activity_Inbound_Calls', 'Activity_Outbound_Calls', 'Activity_Text_Messages',
+                'Activity_Emails', 'Activity_Voicemails', 'Activity_Form_Fills',
+                'Is_Converted_Bool', 'lead_record_id'
             ]
             # Initialize visibility for all columns
             for col in df.columns:
@@ -532,9 +534,11 @@ with st.sidebar:
                 st.session_state.editing_column = None
                 # Reset to default columns
                 default_cols = [
-                    'Lead_FirstName', 'Lead_LastName', 'Lead_Name', 'Lead_Status', 
-                    'Lead_Source', 'Lead_Owner_Name', 'Lead_CreatedDate', 
-                    'Activity_Count', 'Speed_to_Lead', 'Has_L2QR', 'Is_Converted_Bool'
+                    'Person_UUID', 'lead_first_name', 'lead_status', 'lead_status_detail',
+                    'Has_L2QR', 'Activity_Count', 'Speed_to_Lead', 
+                    'Activity_Inbound_Calls', 'Activity_Outbound_Calls', 'Activity_Text_Messages',
+                    'Activity_Emails', 'Activity_Voicemails', 'Activity_Form_Fills',
+                    'Is_Converted_Bool', 'lead_record_id'
                 ]
                 for col in df.columns:
                     st.session_state.column_visibility[col] = col in default_cols
@@ -616,137 +620,249 @@ if df is None or (isinstance(df, pd.DataFrame) and df.empty):
 # Calculate metrics
 metrics = calculate_metrics(df)
 
-# Main KPIs - More compact layout
-st.markdown("#### Lead Metrics")
+# KPI SECTION - Enhanced with better visual presentation and organization
+st.markdown('<div class="band-main">', unsafe_allow_html=True)
+
+# Lead Funnel Metrics Section with icons and tooltips
+st.markdown("#### 🎯 Lead Funnel Metrics")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    # Put all HTML in one block to keep it contained
-    card_html = f"""
-    <div style="background: white; border-radius: 16px; border: 1px solid #D6E7FB; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 12px; height: 100%;">
-        <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">LEAD COUNT</div>
-        <div style="font-size: 42px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["lead_count"]:,}</div>
-    </div>
-    """
-    st.markdown(card_html, unsafe_allow_html=True)
+    # Lead Count - Primary KPI with enhanced design
+    conversion_trend = 'up' if metrics['lead_count'] > 0 else 'neutral'
+    deltas = generate_delta(metrics['lead_count'], conversion_trend)
+    
+    # Use st.metric for better presentation with delta
+    st.metric(
+        label="📊 Total Leads", 
+        value=f"{metrics['lead_count']:,}",
+        delta=f"+{deltas['mom']:.1f}% vs last month" if st.session_state.show_deltas else None,
+        help="Total number of leads in the system. This is the foundation metric for all conversion calculations."
+    )
     
     if st.session_state.show_sparklines:
-        # In a real app, you'd calculate actual historical data
         sparkline_data = generate_sparkline_data(metrics['lead_count'])
         st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
-    
-    if st.session_state.show_deltas:
-        deltas = generate_delta(metrics['lead_count'], 'up')
-        delta_html = f"""
-        <div style="margin-top: 8px;">
-            <span class="chip up">DoD ▲ +{deltas['dod']:.1f}%</span>
-            <span class="chip up">WoW ▲ +{deltas['wow']:.1f}%</span>
-            <span class="chip up">MoM ▲ +{deltas['mom']:.1f}%</span>
-        </div>
-        """
-        st.markdown(delta_html, unsafe_allow_html=True)
 
 with col2:
-    card_html = f"""
-    <div style="background: white; border-radius: 16px; border: 1px solid #D6E7FB; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 12px; height: 100%;">
-        <div style="display: flex; justify-content: space-between; gap: 12px;">
-            <div style="flex: 1;">
-                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">L2QR COUNT</div>
-                <div style="font-size: 42px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["l2qr_count"]:,}</div>
-            </div>
-            <div style="flex: 1; text-align: right;">
-                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">LEAD → L2QR</div>
-                <div style="font-size: 28px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["lead_to_l2qr_pct"]:.1f}%</div>
-            </div>
-        </div>
-    </div>
-    """
-    st.markdown(card_html, unsafe_allow_html=True)
+    # L2QR Metrics with dual display
+    l2qr_trend = 'up' if metrics['l2qr_count'] > 0 else 'neutral'
+    l2qr_deltas = generate_delta(metrics['l2qr_count'], l2qr_trend)
+    
+    # Main L2QR count
+    st.metric(
+        label="🎯 L2QR Qualified", 
+        value=f"{metrics['l2qr_count']:,}",
+        delta=f"+{l2qr_deltas['mom']:.1f}% vs last month" if st.session_state.show_deltas else None,
+        help="Leads to Qualified Referral (L2QR) count. These are leads that have been qualified by the sales team."
+    )
+    
+    # Conversion rate in smaller metric
+    st.metric(
+        label="📈 Lead → L2QR Rate",
+        value=f"{metrics['lead_to_l2qr_pct']:.1f}%",
+        help="Percentage of leads that convert to L2QR status. Higher rates indicate better lead quality or qualification processes."
+    )
     
     if st.session_state.show_sparklines:
         sparkline_data = generate_sparkline_data(metrics['l2qr_count'])
         st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
-    
-    if st.session_state.show_deltas:
-        deltas = generate_delta(metrics['l2qr_count'], 'up')
-        delta_html = f"""
-        <div style="margin-top: 8px;">
-            <span class="chip up">DoD ▲ +{deltas['dod']:.1f}%</span>
-            <span class="chip up">WoW ▲ +{deltas['wow']:.1f}%</span>
-            <span class="chip up">MoM ▲ +{deltas['mom']:.1f}%</span>
-        </div>
-        """
-        st.markdown(delta_html, unsafe_allow_html=True)
 
 with col3:
-    card_html = f"""
-    <div style="background: white; border-radius: 16px; border: 1px solid #D6E7FB; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 12px; height: 100%;">
-        <div style="display: flex; justify-content: space-between; gap: 10px;">
-            <div style="flex: 1;">
-                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">ACCOUNTS</div>
-                <div style="font-size: 42px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["converted_count"]:,}</div>
-            </div>
-            <div style="flex: 1; text-align: center;">
-                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">LEAD → ACCOUNT</div>
-                <div style="font-size: 28px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["lead_to_convert_pct"]:.2f}%</div>
-            </div>
-            <div style="flex: 1; text-align: right;">
-                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">L2QR → ACCOUNT</div>
-                <div style="font-size: 28px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["l2qr_to_convert_pct"]:.2f}%</div>
-            </div>
+    # Account Conversion Metrics
+    account_trend = 'up' if metrics['converted_count'] > 0 else 'neutral'
+    account_deltas = generate_delta(metrics['converted_count'], account_trend)
+    
+    # Main converted count
+    st.metric(
+        label="🏢 Converted Accounts", 
+        value=f"{metrics['converted_count']:,}",
+        delta=f"+{account_deltas['mom']:.1f}% vs last month" if st.session_state.show_deltas else None,
+        help="Total number of leads that converted to accounts/customers. This is your ultimate conversion success metric."
+    )
+    
+    # Conversion rates in a two-column layout
+    sub_col1, sub_col2 = st.columns(2)
+    with sub_col1:
+        # Get color coding based on conversion rate
+        lead_conv_color = "#10b981" if metrics['lead_to_convert_pct'] > 5 else "#f59e0b" if metrics['lead_to_convert_pct'] > 2 else "#ef4444"
+        st.markdown(f"""
+        <div style="text-align: center; padding: 8px; background: white; border-radius: 8px; border: 1px solid {lead_conv_color}20;">
+            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">Lead → Account</div>
+            <div style="font-size: 18px; font-weight: 700; color: {lead_conv_color};">{metrics['lead_to_convert_pct']:.1f}%</div>
         </div>
-    </div>
-    """
-    st.markdown(card_html, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+    
+    with sub_col2:
+        # L2QR to account conversion rate
+        l2qr_conv_color = "#10b981" if metrics['l2qr_to_convert_pct'] > 20 else "#f59e0b" if metrics['l2qr_to_convert_pct'] > 10 else "#ef4444"
+        st.markdown(f"""
+        <div style="text-align: center; padding: 8px; background: white; border-radius: 8px; border: 1px solid {l2qr_conv_color}20;">
+            <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">L2QR → Account</div>
+            <div style="font-size: 18px; font-weight: 700; color: {l2qr_conv_color};">{metrics['l2qr_to_convert_pct']:.1f}%</div>
+        </div>
+        """, unsafe_allow_html=True)
     
     if st.session_state.show_sparklines:
         sparkline_data = generate_sparkline_data(metrics['converted_count'])
         st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Activity & Performance Metrics Section
+st.markdown('<div class="band-secondary" style="margin-top: 16px;">', unsafe_allow_html=True)
+st.markdown("#### ⚡ Activity & Performance Metrics")
+
+# Responsive layout for performance metrics
+perf_col1, perf_col2, perf_col3 = st.columns([1, 1, 1])
+
+with perf_col1:
+    # Speed to Lead - Critical performance metric
+    speed_trend = 'down' if metrics['median_speed_to_lead'] != '00:00' else 'neutral'  # Lower time is better
+    speed_deltas = generate_delta(1, speed_trend)
     
-    if st.session_state.show_deltas:
-        deltas = generate_delta(metrics['converted_count'], 'up')
-        delta_html = f"""
-        <div style="margin-top: 8px;">
-            <span class="chip up">DoD ▲ +{deltas['dod']:.1f}%</span>
-            <span class="chip up">WoW ▲ +{deltas['wow']:.1f}%</span>
-            <span class="chip up">MoM ▲ +{deltas['mom']:.1f}%</span>
+    # Color coding based on speed (green for fast, red for slow)
+    speed_parts = metrics['median_speed_to_lead'].split(':')
+    if len(speed_parts) == 2:
+        try:
+            hours = int(speed_parts[0])
+            minutes = int(speed_parts[1])
+            total_minutes = hours * 60 + minutes
+            speed_color = "#10b981" if total_minutes < 60 else "#f59e0b" if total_minutes < 240 else "#ef4444"
+        except:
+            speed_color = "#6b7280"
+    else:
+        speed_color = "#6b7280"
+    
+    st.markdown(f"""
+    <div style="background: white; border-radius: 16px; border: 2px solid {speed_color}30; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,.08);">
+        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+            <span style="font-size: 24px; margin-right: 8px;">⚡</span>
+            <span style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9;">MEDIAN SPEED TO LEAD</span>
         </div>
-        """
-        st.markdown(delta_html, unsafe_allow_html=True)
-
-
-# Secondary KPIs - More compact
-st.markdown("#### Calling Metrics")
-col1 = st.columns(1)[0]
-
-with col1:
-    card_html = f"""
-    <div style="background: white; border-radius: 16px; border: 1px solid #E6EEF9; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 12px; height: 100%; max-width: 350px;">
-        <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">MEDIAN SPEED TO LEAD</div>
-        <div style="font-size: 32px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["median_speed_to_lead"]}</div>
+        <div style="font-size: 48px; font-weight: 900; color: {speed_color}; line-height: 1; margin-bottom: 4px;">{metrics["median_speed_to_lead"]}</div>
+        <div style="font-size: 12px; color: #6b7280; opacity: 0.8;">hours:minutes</div>
     </div>
-    """
-    st.markdown(card_html, unsafe_allow_html=True)
-    
-    if st.session_state.show_sparklines:
-        # For time-based metrics, show as minutes
-        sparkline_data = generate_sparkline_data(1, num_points=8)  # Using 1 minute as base
-        # Create a narrower chart container
-        with st.container():
-            col_chart, col_empty = st.columns([1, 2])
-            with col_chart:
-                st.line_chart(pd.DataFrame(sparkline_data), height=50, use_container_width=True)
+    """, unsafe_allow_html=True)
     
     if st.session_state.show_deltas:
-        deltas = generate_delta(1, 'neutral')
-        delta_html = f"""
-        <div style="margin-top: 8px; max-width: 400px;">
-            <span class="chip neutral">DoD ■ {deltas['dod']:.1f}%</span>
-            <span class="chip {"down" if deltas['wow'] < 0 else "up"}">WoW {"▼" if deltas['wow'] < 0 else "▲"} {abs(deltas['wow']):.1f}%</span>
-            <span class="chip {"down" if deltas['mom'] < 0 else "up"}">MoM {"▼" if deltas['mom'] < 0 else "▲"} {abs(deltas['mom']):.1f}%</span>
+        delta_color = "#10b981" if speed_deltas['mom'] < 0 else "#ef4444"  # Negative is good for speed
+        trend_icon = "📈" if speed_deltas['mom'] < 0 else "📉"
+        st.markdown(f"""
+        <div style="text-align: center; margin-top: 8px;">
+            <span style="background: {delta_color}15; color: {delta_color}; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                {trend_icon} {abs(speed_deltas['mom']):.1f}% vs last month
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+with perf_col2:
+    # Average Activity Count per Lead
+    activity_avg = metrics['activity_count_avg']
+    activity_color = "#10b981" if activity_avg > 3 else "#f59e0b" if activity_avg > 1 else "#ef4444"
+    activity_deltas = generate_delta(activity_avg, 'up' if activity_avg > 2 else 'neutral')
+    
+    st.metric(
+        label="📞 Avg Activities/Lead",
+        value=f"{activity_avg:.1f}",
+        delta=f"+{activity_deltas['mom']:.1f}% vs last month" if st.session_state.show_deltas else None,
+        help="Average number of activities (calls, emails, meetings) per lead. Higher numbers typically indicate better lead nurturing."
+    )
+
+with perf_col3:
+    # Pipeline Health Score (calculated metric)
+    # This combines multiple factors into a health score
+    pipeline_health = min(100, (
+        (metrics['lead_to_l2qr_pct'] / 20) * 30 +  # L2QR rate (max 30 points)
+        (metrics['l2qr_to_convert_pct'] / 50) * 40 +  # Conversion rate (max 40 points)
+        (min(activity_avg, 5) / 5) * 30  # Activity coverage (max 30 points)
+    ))
+    
+    health_color = "#10b981" if pipeline_health > 70 else "#f59e0b" if pipeline_health > 40 else "#ef4444"
+    health_icon = "💪" if pipeline_health > 70 else "⚠️" if pipeline_health > 40 else "🚨"
+    
+    st.markdown(f"""
+    <div style="background: white; border-radius: 16px; border: 2px solid {health_color}30; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,.08);">
+        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+            <span style="font-size: 24px; margin-right: 8px;">{health_icon}</span>
+            <span style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9;">PIPELINE HEALTH</span>
+        </div>
+        <div style="font-size: 42px; font-weight: 900; color: {health_color}; line-height: 1; margin-bottom: 4px;">{pipeline_health:.0f}</div>
+        <div style="font-size: 12px; color: #6b7280; opacity: 0.8;">composite score</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Show contributing factors as help text
+    with st.expander("ℹ️ Health Score Breakdown"):
+        st.markdown(f"""
+        **Pipeline Health Score Components:**
+        - **L2QR Rate**: {metrics['lead_to_l2qr_pct']:.1f}% (target: 20%+)
+        - **Conversion Rate**: {metrics['l2qr_to_convert_pct']:.1f}% (target: 50%+)  
+        - **Activity Coverage**: {activity_avg:.1f} activities/lead (target: 5+)
+        
+        *Score combines these factors to give an overall pipeline health indicator from 0-100.*
+        """)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Optional Delta Summary Section
+if st.session_state.show_deltas:
+    st.markdown("#### 📊 Trend Summary")
+    trend_col1, trend_col2, trend_col3, trend_col4 = st.columns(4)
+    
+    with trend_col1:
+        lead_deltas = generate_delta(metrics['lead_count'], 'up')
+        trend_html = f"""
+        <div style="text-align: center; padding: 12px; background: white; border-radius: 12px; border: 1px solid #e5e7eb;">
+            <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Leads</div>
+            <div style="display: flex; justify-content: space-around; font-size: 10px; font-weight: 600;">
+                <span class="chip up" style="margin: 0;">DoD +{lead_deltas['dod']:.1f}%</span>
+                <span class="chip up" style="margin: 0;">WoW +{lead_deltas['wow']:.1f}%</span>
+            </div>
         </div>
         """
-        st.markdown(delta_html, unsafe_allow_html=True)
+        st.markdown(trend_html, unsafe_allow_html=True)
+    
+    with trend_col2:
+        l2qr_deltas = generate_delta(metrics['l2qr_count'], 'up')
+        trend_html = f"""
+        <div style="text-align: center; padding: 12px; background: white; border-radius: 12px; border: 1px solid #e5e7eb;">
+            <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">L2QR</div>
+            <div style="display: flex; justify-content: space-around; font-size: 10px; font-weight: 600;">
+                <span class="chip up" style="margin: 0;">DoD +{l2qr_deltas['dod']:.1f}%</span>
+                <span class="chip up" style="margin: 0;">WoW +{l2qr_deltas['wow']:.1f}%</span>
+            </div>
+        </div>
+        """
+        st.markdown(trend_html, unsafe_allow_html=True)
+    
+    with trend_col3:
+        conv_deltas = generate_delta(metrics['converted_count'], 'up')
+        trend_html = f"""
+        <div style="text-align: center; padding: 12px; background: white; border-radius: 12px; border: 1px solid #e5e7eb;">
+            <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Accounts</div>
+            <div style="display: flex; justify-content: space-around; font-size: 10px; font-weight: 600;">
+                <span class="chip up" style="margin: 0;">DoD +{conv_deltas['dod']:.1f}%</span>
+                <span class="chip up" style="margin: 0;">WoW +{conv_deltas['wow']:.1f}%</span>
+            </div>
+        </div>
+        """
+        st.markdown(trend_html, unsafe_allow_html=True)
+    
+    with trend_col4:
+        speed_deltas = generate_delta(1, 'neutral')
+        speed_trend_class = "down" if speed_deltas['dod'] < 0 else "up"
+        speed_icon = "▼" if speed_deltas['dod'] < 0 else "▲"
+        trend_html = f"""
+        <div style="text-align: center; padding: 12px; background: white; border-radius: 12px; border: 1px solid #e5e7eb;">
+            <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Speed</div>
+            <div style="display: flex; justify-content: space-around; font-size: 10px; font-weight: 600;">
+                <span class="chip {speed_trend_class}" style="margin: 0;">DoD {speed_icon} {abs(speed_deltas['dod']):.1f}%</span>
+                <span class="chip {"down" if speed_deltas['wow'] < 0 else "up"}" style="margin: 0;">WoW {"▼" if speed_deltas['wow'] < 0 else "▲"} {abs(speed_deltas['wow']):.1f}%</span>
+            </div>
+        </div>
+        """
+        st.markdown(trend_html, unsafe_allow_html=True)
 
 # Data Table Section
 st.markdown("### Person Master Data")
