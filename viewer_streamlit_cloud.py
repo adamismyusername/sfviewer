@@ -560,7 +560,7 @@ with st.sidebar:
         if not st.session_state.column_visibility:
             # Default columns to show
             default_cols = [
-                'Person_UUID', 'Lead_FirstName', 'Lead_Status', 'Lead_Status_Detail',
+                'Person_UUID', 'lead_first_name', 'Lead_Status', 'Lead_Status_Detail',
                 'Has_L2QR', 'Activity_Count', 'Speed_to_Lead', 
                 'Activity_Inbound_Calls', 'Activity_Outbound_Calls', 'Activity_Text_Messages',
                 'Activity_Emails', 'Activity_Voicemails', 'Activity_Form_Fills',
