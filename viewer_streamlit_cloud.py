@@ -54,7 +54,7 @@ COLUMN_LABEL_DICTIONARY = {
     'Activity_Form_Fills': 'Forms',
     
     # Speed and Performance Metrics
-    'Speed_to_Lead': 'Response Time',
+    'Speed_to_Lead': 'S2L',
     'First_Call_DateTime': 'First Call Time',
     'Activity_First_Touch': 'First Touch Time',
     
