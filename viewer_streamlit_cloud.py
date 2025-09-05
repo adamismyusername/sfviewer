@@ -811,7 +811,7 @@ with col1:
     # Put all HTML in one block to keep it contained
     card_html = f"""
     <div style="background: white; border-radius: 16px; border: 1px solid #D6E7FB; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 12px; height: 100%;">
-        <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">LEAD COUNT</div>
+        <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">TOTAL LEADS</div>
         <div style="font-size: 42px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["lead_count"]:,}</div>
     </div>
     """
@@ -870,15 +870,15 @@ with col3:
     <div style="background: white; border-radius: 16px; border: 1px solid #D6E7FB; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 12px; height: 100%;">
         <div style="display: flex; justify-content: space-between; gap: 10px;">
             <div style="flex: 1;">
-                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">ACCOUNTS</div>
+                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">TOTAL ACCOUNTS</div>
                 <div style="font-size: 42px; font-weight: 900; color: #0176D3; line-height: 1;">{metrics["converted_count"]:,}</div>
             </div>
             <div style="flex: 1; text-align: center;">
-                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">LEAD → ACCOUNT</div>
+                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">LEADS → ACCOUNTS</div>
                 <div style="font-size: 28px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["lead_to_convert_pct"]:.2f}%</div>
             </div>
             <div style="flex: 1; text-align: right;">
-                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">L2QR → ACCOUNT</div>
+                <div style="font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #1B5297; opacity: 0.9; margin-bottom: 6px;">QUALIFIED LEADS → ACCOUNTS</div>
                 <div style="font-size: 28px; font-weight: 800; color: #1B5297; line-height: 1;">{metrics["l2qr_to_convert_pct"]:.2f}%</div>
             </div>
         </div>
