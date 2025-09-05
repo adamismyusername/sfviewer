@@ -19,7 +19,7 @@ import json
 PDT = timezone(timedelta(hours=-7))
 
 # Last updated timestamp - UPDATE THIS when making code changes (use your local time with timezone)
-LAST_UPDATED = datetime(2025, 9, 5, 15, 35, 0, tzinfo=PDT)
+LAST_UPDATED = datetime(2025, 9, 5, 15, 45, 0, tzinfo=PDT)
 
 # Predefined column label mappings - edit this dictionary to rename columns directly in code
 # Format: 'original_column_name': 'Display Name'
@@ -619,6 +619,21 @@ def get_relative_time(last_updated):
         years = int(days / 365)
         return f"{years} year{'s' if years != 1 else ''} ago"
 
+# LOAD DATA FIRST (before sidebar)
+# Load data early so we can check if we have data
+output_files = find_output_files()
+if output_files:
+    selected_path = output_files[0]  # Default to most recent file
+else:
+    selected_path = None
+
+# Try to load data from uploaded file or local file
+df = None  # Initialize df
+if 'uploaded_file' in st.session_state and st.session_state.uploaded_file:
+    df = load_data(uploaded_file=st.session_state.uploaded_file)
+elif selected_path:
+    df = load_data(file_path=selected_path)
+
 # SIDEBAR CONFIGURATION
 # Create a placeholder for the expand button at the very top
 expand_button_container = st.container()
@@ -653,69 +668,55 @@ if st.session_state.sidebar_visible:
         
         # File Management Section
         st.markdown("#### 📁 Data Source")
-    
-    # Load data early so we can check if we have data
-    output_files = find_output_files()
-    if output_files:
-        selected_path = output_files[0]  # Default to most recent file
-    else:
-        selected_path = None
-    
-    # Try to load data from uploaded file or local file
-    df = None  # Initialize df
-    if 'uploaded_file' in st.session_state and st.session_state.uploaded_file:
-        df = load_data(uploaded_file=st.session_state.uploaded_file)
-    elif selected_path:
-        df = load_data(file_path=selected_path)
-    
-    # File selector for local files
-    if output_files:
-        file_options = {f.name: f for f in output_files}
-        selected_file = st.selectbox(
-            "Select Local File",
-            options=list(file_options.keys()),
-            index=0 if file_options else None
+        
+        # File selector for local files
+        if output_files:
+            file_options = {f.name: f for f in output_files}
+            selected_file = st.selectbox(
+                "Select Local File",
+                options=list(file_options.keys()),
+                index=0 if file_options else None
+            )
+            selected_path = file_options.get(selected_file)
+            # Load the selected file if it's different from what's already loaded
+            if selected_path and (df is None or not st.session_state.uploaded_file):
+                df = load_data(file_path=selected_path)
+        
+        # File uploader
+        uploaded_file = st.file_uploader(
+            "Or Upload CSV",
+            type=['csv'],
+            key="csv_uploader"
         )
-        selected_path = file_options.get(selected_file)
-        # Load the selected file if it's different from what's already loaded
-        if selected_path and (df is None or not st.session_state.uploaded_file):
-            df = load_data(file_path=selected_path)
-    
-    # File uploader
-    uploaded_file = st.file_uploader(
-        "Or Upload CSV",
-        type=['csv'],
-        key="csv_uploader"
-    )
-    if uploaded_file:
-        st.session_state.uploaded_file = uploaded_file
-        # Load the uploaded file immediately
-        df = load_data(uploaded_file=uploaded_file)
-    
-    st.divider()
-    
-    # KPI Options Section
-    st.markdown("#### 📊 Display Options")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button(
-            "📈 Sparklines" + (" ✓" if st.session_state.show_sparklines else ""),
-            key="toggle_sparklines",
-            type="primary" if st.session_state.show_sparklines else "secondary",
-            use_container_width=True
-        ):
-            st.session_state.show_sparklines = not st.session_state.show_sparklines
-    
-    with col2:
-        if st.button(
-            "% Deltas" + (" ✓" if st.session_state.show_deltas else ""),
-            key="toggle_deltas",
-            type="primary" if st.session_state.show_deltas else "secondary",
-            use_container_width=True
-        ):
-            st.session_state.show_deltas = not st.session_state.show_deltas
-    
+        if uploaded_file:
+            st.session_state.uploaded_file = uploaded_file
+            # Load the uploaded file immediately
+            df = load_data(uploaded_file=uploaded_file)
+        
+        st.divider()
+        
+        # KPI Options Section
+        st.markdown("#### 📊 Display Options")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button(
+                "📈 Sparklines" + (" ✓" if st.session_state.show_sparklines else ""),
+                key="toggle_sparklines",
+                type="primary" if st.session_state.show_sparklines else "secondary",
+                use_container_width=True
+            ):
+                st.session_state.show_sparklines = not st.session_state.show_sparklines
+        
+        with col2:
+            if st.button(
+                "% Deltas" + (" ✓" if st.session_state.show_deltas else ""),
+                key="toggle_deltas",
+                type="primary" if st.session_state.show_deltas else "secondary",
+                use_container_width=True
+            ):
+                st.session_state.show_deltas = not st.session_state.show_deltas
+        
         st.divider()
         
         # Column Configuration Section
