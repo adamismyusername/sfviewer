@@ -122,7 +122,7 @@ st.markdown("""
     /* Hide only the specific buttons we don't want */
     [data-testid="stToolbar"] a[href*="streamlit.io"],
     [data-testid="stToolbar"] button[title*="View app source"],
-    [data-testid="stToolbarActionButtonLabel"] button[title*="Fork"],
+    [data-testid="stToolbar"] button[title*="Fork"],
     [data-testid="stToolbar"] button[title*="Deploy this app"] {
         display: none;
     }
