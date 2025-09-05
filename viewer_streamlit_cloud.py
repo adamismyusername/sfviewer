@@ -27,7 +27,7 @@ LAST_UPDATED = datetime(2025, 9, 5, 10, 45, 0, tzinfo=PDT)
 # Users can still override these via the UI column rename feature
 COLUMN_LABEL_DICTIONARY = {
     # Person and Identity Fields
-    'Person_UUID': 'Person ID',
+    'Person_UUID': 'UNIQUE ID',
     'lead_first_name': 'First Name', 
     'lead_last_name': 'Last Name',
     'lead_full_name': 'Full Name',
@@ -46,12 +46,12 @@ COLUMN_LABEL_DICTIONARY = {
     
     # Activity Metrics
     'Activity_Count': 'Total Activities',
-    'Activity_Inbound_Calls': 'Inbound Calls',
-    'Activity_Outbound_Calls': 'Outbound Calls', 
-    'Activity_Text_Messages': 'Text Messages',
-    'Activity_Emails': 'Emails Sent',
-    'Activity_Voicemails': 'Voicemails',
-    'Activity_Form_Fills': 'Form Fills',
+    'Activity_Inbound_Calls': 'Calls (In)',
+    'Activity_Outbound_Calls': 'Calls (Out)', 
+    'Activity_Text_Messages': 'SMS',
+    'Activity_Emails': 'Emails',
+    'Activity_Voicemails': 'VMs',
+    'Activity_Form_Fills': 'Forms',
     
     # Speed and Performance Metrics
     'Speed_to_Lead': 'Response Time',
