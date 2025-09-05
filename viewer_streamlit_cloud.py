@@ -113,18 +113,16 @@ st.markdown("""
     /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    /* header {visibility: hidden;} */
     
-    /* Reduce empty space from header */
+    /* Keep header but make it minimal - DON'T set height to 0 */
     [data-testid="stHeader"] {
-        height: 0rem;
-        padding: 0rem;
         background: none;
     }
-    [data-testid="stToolbar"] {
-        height: 0rem;
-        padding: 0rem;
-        background: none;
+    
+    /* Hide specific toolbar items but keep the sidebar toggle visible */
+    /* Target the deploy button and other items by their specific attributes */
+    [data-testid="stToolbar"] [data-testid="stToolbarActions"] {
+        display: none;
     }
 
     /* Remove extra space above main container */
