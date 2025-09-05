@@ -119,19 +119,18 @@ st.markdown("""
         background: none;
     }
     
-    /* Hide only the specific buttons we don't want */
-    [data-testid="stToolbar"] a[href*="streamlit.io"],
-    [data-testid="stToolbar"] button[title*="View app source"],
-    [data-testid="stToolbar"] button[title*="Deploy this app"] {
-        display: none;
-    }
+
 
     /* Remove extra space above main container */
     .block-container {
         padding-top: 2rem !important; /* Changed from 0rem to give space for header */
     }
             
-
+    /* Hide GitHub, Star, and Share buttons in the top-right header */
+    [data-testid="stToolbar"] a,
+    [data-testid="stToolbar"] button {
+        visibility: hidden;
+    }
     
     /* Reduce gap between elements */
     .stApp > div > div {
